@@ -167,6 +167,8 @@ body.ios .tag{margin-bottom:10px}
 .mside button{background:#2a1d3e;color:#cbbde3;border:1px solid #47355f;border-radius:8px;padding:8px 6px;font-size:13px;text-align:left}
 .mside button.on{background:#e8c26a;color:#231633;font-weight:800}
 .mside .cls{margin-top:auto;background:#5a1f2a;border-color:#c55;color:#fff;text-align:center}
+/* tabs scroll on their own; Close sits outside the scroll area so it never covers a tab */
+.mtabs{display:flex;flex-direction:column;gap:5px;flex:1 1 auto;min-height:0;overflow-y:auto}
 .mc{flex:1;overflow-y:auto;padding:4px 10px 12px;-webkit-overflow-scrolling:touch}
 .card{background:#241838;border:1px solid #3d2d58;border-radius:10px;padding:8px 11px;margin-top:7px;font-size:13px;line-height:1.55}
 .ttl{font-weight:800;color:#e8c26a;margin-bottom:3px}
@@ -447,6 +449,33 @@ body.fx-glass{--pan:rgba(26,18,40,.78)}
 body.fx-glass .mwrap{backdrop-filter:blur(18px) saturate(1.25);-webkit-backdrop-filter:blur(18px) saturate(1.25)}
 .mside{border-right:1px solid rgba(120,95,170,.26)}
 
+/* Skills must shrink inside the menu rather than underneath its navigation. */
+.mwrap,.mc{min-width:0;min-height:0}
+.pbsetup{min-width:0;overflow-wrap:anywhere}
+.pbsetup .row{display:grid;grid-template-columns:minmax(0,1fr) 44px 44px}
+.pbsetup .row>span{min-width:0;overflow-wrap:anywhere}
+.pbsetup .mbtn{max-width:100%;white-space:normal;overflow-wrap:anywhere;margin-right:0}
+.pbsetup .skbar{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.pbsetup .skbar .mbtn{padding:8px 2px;min-height:44px;margin:0}
+.skbar{flex-wrap:wrap}
+.skslot{flex-shrink:0}
+@media (orientation:portrait) and (max-width:600px){
+ .mwrap{flex-direction:column}
+ .mside{width:100%;flex:0 0 auto;flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:6px;gap:6px;border-right:0;border-bottom:1px solid var(--crd-br)}
+ .mside button{flex:0 0 auto;white-space:nowrap;min-height:44px}
+ .mside{overflow:hidden;align-items:center}
+ .mtabs{flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:6px;min-width:0}
+ .mside .cls{margin:0;flex:0 0 auto}
+ .mc{width:100%;padding:4px 8px 12px}
+ .skbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ .skslot{width:100%;min-width:0}
+ .pbsetup .skbar{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .skhd{flex-wrap:wrap}
+ #hr{max-width:calc(100vw - 16px - env(safe-area-inset-left) - env(safe-area-inset-right))}
+ #hr .info{max-width:58vw;min-width:0;overflow-wrap:anywhere}
+ #hr .tb{gap:4px}
+}
+
 /* ===================== STATUS TAB ===================== */
 .vit{display:flex;align-items:center;gap:7px;margin-top:5px}
 .vit .vl{flex:0 0 64px;font-size:11px;color:#a99cc0}
@@ -458,6 +487,9 @@ body.fx-glass .mwrap{backdrop-filter:blur(18px) saturate(1.25);-webkit-backdrop-
 .chip{font-size:11.5px;padding:3px 9px;border-radius:11px;background:rgba(0,0,0,.3);border:1px solid rgba(120,95,170,.3);color:#cbbde3}
 .icard .sl,.ctile .sl{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:#a99cc0}
 .icard .stv{font-size:22px;font-weight:800;color:#f0e6ff;line-height:1.15}
+.icard .stb{font-size:14px;font-weight:700;color:#8fe3b0}
+.icard .str2{font-size:14px;font-weight:700;color:#ffd76a}
+.fgbon{font-size:12.5px;color:#ffd76a;margin:2px 0 4px}.fgbon span{color:#a99cc0}
 .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(134px,1fr));gap:6px;margin-top:7px}
 .ctile{display:flex;flex-direction:column;gap:1px;padding:7px 9px;border-radius:9px;
   background:linear-gradient(180deg,rgba(255,255,255,.04),transparent 30px),rgba(14,9,24,.46);
@@ -522,6 +554,80 @@ body.fx-glass .mwrap{backdrop-filter:blur(18px) saturate(1.25);-webkit-backdrop-
 .icard .stg{color:#8fe3b0}
 .icard .sl button,.card .ttl button{font-size:11px;padding:4px 9px;border-radius:7px;background:#3b2758;border:1px solid #e8c26a;color:#f8e9c4;font-weight:700}
 .card .ttl button:disabled{opacity:.35}
+/* Character creation: a dedicated preview and a scrollable form with stable actions. */
+#selScr{background:none;overflow:hidden}
+#creationPreview{position:absolute;inset:0 min(560px,60vw) 0 0;pointer-events:none}
+.preview-caption{position:absolute;bottom:12px;left:12px;right:12px;display:flex;align-items:center;justify-content:center;gap:12px;color:#e8c26a;font-size:13px;text-shadow:0 1px 3px #000}
+#previewRotate{pointer-events:auto;min-width:44px;min-height:44px;border:1px solid #75608e;border-radius:8px;background:#20172de6;color:#e8dcff;padding:6px 10px}
+#selScr .selp{width:min(560px,60vw);height:100%;max-height:100%;min-height:0;overflow:hidden;background:var(--pan);padding:calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) 12px;gap:10px}
+.creation-head{flex:none}.creation-head h2{margin-bottom:10px;font-size:22px;letter-spacing:.5px}
+#creationSteps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+#creationSteps button{min-height:44px;min-width:0;padding:6px 3px;border:1px solid #68517f;border-radius:8px;color:#d5c8e6;background:#21172e;font-size:12px}
+#creationSteps button[aria-current=step]{color:#231633;background:#e8c26a;border-color:#e8c26a;font-weight:700}
+#creationFields{flex:1 1 auto;min-height:0;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;padding:0 2px 12px;scrollbar-gutter:stable}
+#creationFields section[hidden]{display:none}
+#creationFields h3{font-size:15px;color:#eee3cc;margin:5px 0 9px}
+#creationFields h3 small{font-size:11px;color:#b9abc9;font-weight:400}
+#creationFields .creation-help{color:#bfb0cf;font-size:12px;line-height:1.5;margin:8px 0 16px}
+#clsGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0}
+#clsGrid button{min-height:76px;min-width:0;padding:8px 4px;overflow-wrap:anywhere}
+#clsGrid button b{margin:3px 0;font-size:14px}
+#cDesc{margin-top:10px;padding:10px;background:#21172e;border:1px solid #514066;border-radius:9px;line-height:1.55}
+#cDesc details{margin-top:7px;color:#bfb0cf}#cDesc summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:#e8c26a}
+#creationFields .crow{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 18px}
+#creationFields .crow>span{width:100%;flex:0 0 100%;font-size:13px;color:#cbbbdb}
+#creationFields .crow .seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:8px}
+#creationFields .seg button{min-width:0;min-height:44px;white-space:normal}
+#creationFields .sw{gap:10px;padding:3px;width:100%}
+#creationFields .sw button{flex:0 0 44px;width:44px;height:44px;position:relative}
+#creationFields .sw button[aria-pressed=true]::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;color:white;font-size:20px;text-shadow:0 1px 3px black,0 0 3px black}
+#cuPlayer{font-size:16px;color:#fff;overflow-wrap:anywhere}#cuRename{min-height:44px;margin:0}
+#facGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#facGrid button{min-height:68px;min-width:0}
+.creation-summary{border:1px solid #68517f;border-radius:10px;padding:12px;color:#e8dcff;background:#21172e;font-size:13px;line-height:1.7}
+.creation-footer{flex:none;border-top:1px solid #594468;padding-top:8px;background:var(--pan)}
+#creationHint{font-size:12px;color:#c9b7db;margin-bottom:6px;min-height:17px}
+#selScr .creation-footer .btn{min-height:48px;min-width:0;white-space:normal;font-size:14px}
+#selGo:disabled{opacity:.45;cursor:not-allowed;filter:none}
+#selScr button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+@media (orientation:portrait){
+ #selScr{flex-direction:column;justify-content:flex-start}
+ #creationPreview{position:relative;inset:auto;width:100%;height:clamp(150px,27dvh,240px);flex:0 0 clamp(150px,27dvh,240px);margin-top:env(safe-area-inset-top)}
+ #selScr .selp{width:100%;height:auto;flex:1;min-height:0;padding:12px max(12px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));border-radius:18px 18px 0 0;border-top:1px solid #68517f;background:#170f24}
+ .creation-head h2{font-size:20px;margin-bottom:8px}
+ .preview-caption{bottom:4px;font-size:12px}
+}
+@media (orientation:landscape) and (max-height:450px){
+ .creation-head h2{display:none}#selScr .selp{gap:6px;padding-top:6px;padding-bottom:6px}
+ #creationHint{margin-bottom:3px}#creationSteps button{min-height:40px}
+}
+
+/* Account forms fit the visual viewport, including an open phone keyboard. */
+#modal{top:var(--visible-top,0px)!important;bottom:auto!important;height:var(--visible-height,100dvh);padding:12px!important}
+#modal>div{max-height:100%;overflow-y:auto;overscroll-behavior:contain}
+#modal .btn{min-height:44px}
+#modal.account-modal{top:var(--account-top,0px)!important;bottom:auto!important;height:var(--account-height,100dvh);padding:max(10px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))!important}
+#modal.account-modal>div{display:flex;flex-direction:column;max-height:100%;min-height:0;max-width:440px!important;border:1px solid #75608e!important;padding:16px!important;background:#170f24!important;text-align:left!important}
+.account-modal #mdT{overflow-y:auto;overscroll-behavior:contain;min-height:0;padding:2px 4px;scrollbar-gutter:stable}
+.account-modal #mdB{flex:none;display:grid;grid-template-columns:1fr;gap:8px;border-top:1px solid #514066;padding-top:10px}
+.account-modal #mdB .btn{width:100%;margin:0;min-height:46px;padding:10px;font-size:15px}
+#accountHeading:focus{outline:none}
+#accountHeading{font:24px Georgia,serif;color:#e8c26a;margin:0 0 8px}
+.account-intro,.account-note{font-size:13px;line-height:1.5;color:#bdafce;margin:8px 0 14px}
+.account-note{padding:10px;background:#21172e;border-radius:8px;font-size:12px;margin-bottom:4px}
+.account-modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.account-modes button,.account-password button{border:1px solid #75608e;background:#21172e;color:#e8dcff;border-radius:8px;min-height:44px;padding:8px;font-size:13px}
+.account-modes button[aria-pressed=true]{background:#e8c26a;color:#231633;font-weight:700}
+#accountForm label{display:block;color:#e8dcff;font-size:14px;margin:12px 0 6px}
+#accountForm input{width:100%;min-width:0;min-height:46px;font:16px system-ui;padding:10px;border-radius:8px;border:1px solid #75608e;background:#100b1a;color:#fff;user-select:text;-webkit-user-select:text}
+#accountForm input:focus{outline:2px solid #e8c26a;outline-offset:1px}
+#accountForm input[aria-invalid=true]{border-color:#ff8b8b}
+.account-password{display:grid;grid-template-columns:minmax(0,1fr) 60px;gap:8px}
+#accountForm small{display:block;color:#b6a8c8;font-size:12px;margin-top:6px}
+#accountStatus{min-height:20px;font-size:13px;line-height:1.5;margin:12px 0 4px;color:#cbbde3}
+#accountStatus.account-error{color:#ff9999}
+.account-modal button:focus-visible{outline:2px solid white;outline-offset:2px}
+.account-modal button:disabled{opacity:.5;cursor:wait}
+@media(max-height:500px){#modal.account-modal>div{padding:10px!important}.account-modal #mdB{grid-template-columns:1fr 1fr}.account-intro{margin-bottom:8px}}
 </style>
 </head>
 <body>
@@ -586,25 +692,34 @@ body.fx-glass .mwrap{backdrop-filter:blur(18px) saturate(1.25);-webkit-backdrop-
   <div id="slotList"></div>
   <button class="btn ghost" id="slotBack" style="margin-top:6px">← Back</button>
 </div></div>
-<div class="screen" id="selScr"><div class="selp">
-  <h2>CHOOSE YOUR FACTION</h2>
-  <div class="fgrid" id="facGrid"></div>
-  <h2>WHO WILL YOU RESCUE?</h2>
-  <div class="seg" id="heroSeg"><button data-h="L" class="on">💗 Calliope</button><button data-h="C">💙 Lambo</button></div>
-  <div style="font-size:11.5px;color:#a99cc0" id="hostTxt"></div>
-  <h2 style="font-size:16px">CHOOSE YOUR CLASS</h2>
-  <div class="cgrid" id="clsGrid"></div>
-  <div id="cDesc"></div>
-  <h2 style="font-size:16px">CUSTOMIZE</h2>
-  <div class="crow"><span>Player</span><b id="cuPlayer" style="color:#fff;font-size:14px"></b><button class="mbtn" id="cuRename" style="margin:0;padding:5px 10px">✏️ Change</button></div>
-  <div class="crow"><span>Hair</span><div class="seg sm" id="cuStyle"></div></div>
-  <div class="crow"><span>Hair color</span><div class="sw" id="cuHair"></div></div>
-  <div class="crow"><span>Skin</span><div class="sw" id="cuSkin"></div></div>
-  <div class="crow"><span>Outfit</span><div class="sw" id="cuOut"></div></div>
-  <h2 style="font-size:16px">DIFFICULTY</h2>
-  <div class="seg sm" id="cuDiff"></div><div id="diffD" style="font-size:11.5px;color:#a99cc0"></div>
-  <div class="row2"><button class="btn ghost" id="selBack">← Back</button><button class="btn" id="selGo">Begin Journey ▸</button></div>
-</div></div>
+<div class="screen" id="selScr">
+ <div id="creationPreview" aria-label="Live character preview"><div class="preview-caption"><span id="creationLook"></span><button id="previewRotate" aria-pressed="false">↻ Rotate</button></div></div>
+ <div class="selp">
+  <header class="creation-head"><h2>Create your hero</h2><nav id="creationSteps" aria-label="Character creation steps"><button data-step="0">1 · Hero</button><button data-step="1">2 · Appearance</button><button data-step="2">3 · Journey</button></nav></header>
+  <div id="creationFields">
+   <section data-creation-step="0" aria-label="Hero and class">
+    <h3>Choose your hero</h3>
+    <div class="seg" id="heroSeg"><button data-h="L" class="on">Lambo</button><button data-h="C">Calliope</button></div>
+    <p id="hostTxt" class="creation-help"></p>
+    <h3>Choose your class</h3><div class="cgrid" id="clsGrid"></div><div id="cDesc"></div>
+   </section>
+   <section data-creation-step="1" aria-label="Appearance" hidden>
+    <h3>Make it yours</h3>
+    <div class="crow"><span>Player</span><b id="cuPlayer"></b><button class="mbtn" id="cuRename">✏️ Change</button></div>
+    <div class="crow"><span>Hairstyle</span><div class="seg sm" id="cuStyle"></div></div>
+    <div class="crow"><span>Hair color</span><div class="sw" id="cuHair"></div></div>
+    <div class="crow"><span>Skin tone</span><div class="sw" id="cuSkin"></div></div>
+    <div class="crow"><span>Outfit</span><div class="sw" id="cuOut"></div></div>
+   </section>
+   <section data-creation-step="2" aria-label="Faction and difficulty" hidden>
+    <h3>Choose your faction <small>Required</small></h3><div class="fgrid" id="facGrid"></div><p id="factionDesc" class="creation-help"></p>
+    <h3>Choose your challenge</h3><div class="seg sm" id="cuDiff"></div><p id="diffD" class="creation-help"></p>
+    <div id="creationSummary" class="creation-summary"></div>
+   </section>
+  </div>
+  <footer class="creation-footer"><p id="creationHint" aria-live="polite"></p><div class="row2"><button class="btn ghost" id="selBack">← Back</button><button class="btn" id="selGo">Continue →</button></div></footer>
+ </div>
+</div>
 <div class="screen" id="endScr">
   <div class="logo" style="font-size:clamp(30px,7vw,56px)">THE END</div>
   <div class="tag" id="endTxt"></div>
@@ -613,7 +728,7 @@ body.fx-glass .mwrap{backdrop-filter:blur(18px) saturate(1.25);-webkit-backdrop-
   <button class="btn ghost" id="endTitle">Return to Title</button>
 </div>
 <div id="modal" style="position:fixed;inset:0;z-index:98;background:rgba(5,3,10,.85);display:none;align-items:center;justify-content:center;padding:20px"><div style="background:#1a1229;border:2px solid #e8c26a;border-radius:14px;padding:16px;max-width:460px;width:100%;text-align:center"><div id="mdT" style="margin-bottom:10px;font-size:15px"></div><textarea id="mdIn" class="code" style="display:none;height:90px;margin-bottom:8px;font-size:16px"></textarea><div id="mdB"></div></div></div>
-<div id="rot"><div class="ph">📱</div><div class="serif" style="font-size:22px;color:#e8c26a">Rotate your phone</div><div style="color:#c9b6e8;font-size:14px">Shadow Oath is played in landscape mode.</div><button class="btn ghost" id="rotSkip" style="margin-top:10px">Play in portrait anyway</button></div>
+<div id="rot"><div class="ph">📱</div><div class="serif" style="font-size:22px;color:#e8c26a">Rotate your phone</div><div style="color:#c9b6e8;font-size:14px">Landscape offers more room. Portrait play is also supported.</div><button class="btn ghost" id="rotSkip" style="margin-top:10px">Continue in portrait</button></div>
 
 <script type="module" src="/src/game.js"></script>
 <script type="module" src="/src/pwa.js"></script>

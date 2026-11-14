@@ -100,3 +100,9 @@ blurring a live canvas every frame is far too expensive on mobile.
 
 Build command `npm run build`, output directory `dist`. `base` is `'./'`, so the
 build also works from a subpath like GitHub Pages' `/shadow-oath/`.
+
+## Experience upgrade phases
+
+See [the delivery roadmap](docs/EXPERIENCE-ROADMAP.md) for Parabellum rules, mobile
+changes, verification, and the next Verdant Fields design phase. Run `npm test`
+for the Parabellum rules and class-casting checks.
