@@ -101,6 +101,13 @@ Keep entries short. Do not delete entries; mark them **Resolved** if the cause i
 - **Rule:** Before adding a feature, search for an existing one (UI text, `data-a`
   actions, function names) and extend or fix it instead of adding a parallel path.
 
+### 12. Driving the game loop with a backwards timestamp (2026-11-14)
+- **What happened:** A reduced-motion test called `loop(performance.now())`; the frame
+  time came out negative, so the fade-out code grew screen shake and flash instead of
+  shrinking them, and a working feature looked broken.
+- **Rule:** Advance the loop from its own clock: `loop(last+16)`. Also compare colours
+  with a tolerance: the renderer's colour management can round `#ffffff` to `#fefefe`.
+
 ## How to check the game in real time (CDP)
 
 When a headless scenario is inconclusive, launch Chrome with

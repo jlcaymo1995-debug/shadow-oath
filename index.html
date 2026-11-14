@@ -643,6 +643,13 @@ body.fx-glass .mwrap{backdrop-filter:blur(18px) saturate(1.25);-webkit-backdrop-
 /* narrow screens: slot info on top, actions in their own row underneath */
 @media (max-width:560px){#slotList .slot{flex-wrap:wrap}#slotList .slot .st{flex:1 1 calc(100% - 60px);min-width:0}
  #slotList .slot button{flex:1 1 auto}#slotList .slot button.del,#slotList .slot button.more{flex:0 0 52px}}
+/* accessibility: text size scales menus, dialogs and HUD text; reduced motion; colour-blind markers */
+.mc,#modal>div{zoom:var(--ui,1)}
+#hr{font-size:calc(11px * var(--ui,1))}#log div{font-size:calc(10.5px * var(--ui,1))}.lbl{font-size:calc(11px * var(--ui,1))}
+body.rm .bf.low{animation:none;box-shadow:0 0 0 2px #ff6a6a}
+body.rm #log div{animation:fo-rm 5s forwards}@keyframes fo-rm{0%{opacity:0}5%,80%{opacity:1}100%{opacity:0}}
+body.rm .sknode.can,body.rm .skslot.pick,body.rm *{scroll-behavior:auto}
+body.rm .sknode.can,body.rm .skslot.pick{animation:none}
 </style>
 </head>
 <body>

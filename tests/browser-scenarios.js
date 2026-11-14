@@ -1,6 +1,6 @@
 // Appended only to a temporary copy of game.js by browser-smoke.sh.
 setTimeout(()=>{
- if(location.search.includes('fields')||location.search.includes('opening')||location.search.includes('creation')||location.search.includes('account')||location.search.includes('priest')||location.search.includes('woods')||location.search.includes('status')||location.search.includes('progress')||location.search.includes('mire')||location.search.includes('buffs')||location.search.includes('saves'))return;
+ if(location.search.includes('fields')||location.search.includes('opening')||location.search.includes('creation')||location.search.includes('account')||location.search.includes('priest')||location.search.includes('woods')||location.search.includes('status')||location.search.includes('progress')||location.search.includes('mire')||location.search.includes('buffs')||location.search.includes('saves')||location.search.includes('a11y'))return;
  const errors=[];const check=(ok,label)=>{if(!ok)errors.push(label);};
  try{
   freshSave('L','wizard',null,1);S.fac='vongola';S.job=3;S.lv=500;document.body.classList.add('noRot');S.parabellum=[];

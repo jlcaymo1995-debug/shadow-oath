@@ -26,7 +26,12 @@
       import (code or file). Save codes now use `SO1.<base64>.<checksum>`; old plain
       codes still load, and the old importer's v2/v3-only bug (current saves are v5)
       is fixed. If storage is full, the oldest backups are dropped. Check: '?saves'.
-   C. Accessibility: text size, reduced motion, colour-blind-friendly danger markers.
+   C. Accessibility — implemented (Settings → ♿ Accessibility, saved per device):
+      text size 100/115/130% (menus, dialogs, quest panel, log, labels); reduced
+      motion (defaults to the system setting; no screen shake, zoom punches,
+      slow-motion, big flashes or blinking); colour-blind danger markers (attack
+      zones become yellow/black hazard stripes with a white rim, monster attack
+      rings turn yellow). Check: '?a11y' at all six sizes (130% text must fit).
    D. Progression clarity: "What's next" card, job-trial requirements, chapter levels.
 
 Preserve procedural geometry, synthesized audio, offline play, existing characters,

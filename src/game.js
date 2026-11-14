@@ -909,6 +909,21 @@ let W=1,H=1;
 function applyQuality(){const q=Q();document.body.classList.toggle('fx-glass',QUAL==='high');R.setPixelRatio(Math.min(window.devicePixelRatio||1,q.dpr));R.shadowMap.enabled=!!q.shadow;sun.castShadow=!!q.shadow;if(q.shadow){sun.shadow.mapSize.set(q.shadow,q.shadow);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;}}
  const s=q.shadow?(QUAL==='high'?34:26):0;sun.shadow.camera.left=-s;sun.shadow.camera.right=s;sun.shadow.camera.top=s;sun.shadow.camera.bottom=-s;sun.shadow.camera.updateProjectionMatrix();
  scene.traverse(o=>{if(o.material&&o.material.needsUpdate!==undefined)o.material.needsUpdate=true;});resize();}
+/* ===== Accessibility (Phase 6 Pass C), stored per device =====
+   text: menu, dialog and HUD text scale · rm: reduced motion (no screen shake,
+   zoom punches, slow-motion, big flashes or blinking) · cb: colour-blind-friendly
+   danger markers (yellow/black hazard stripes instead of red) */
+const A11Y_TEXT=[1,1.15,1.3];
+const A11Y=(()=>{let o={};try{o=JSON.parse(localStorage.getItem('so_a11y')||'{}')||{};}catch(e){}
+ let rm=false;try{rm=matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
+ return {text:A11Y_TEXT.includes(o.text)?o.text:1,rm:typeof o.rm==='boolean'?o.rm:rm,cb:!!o.cb};})();
+function saveA11y(){try{localStorage.setItem('so_a11y',JSON.stringify(A11Y));}catch(e){}}
+function applyA11y(){document.documentElement.style.setProperty('--ui',String(A11Y.text));document.body.classList.toggle('rm',A11Y.rm);document.body.classList.toggle('cb',A11Y.cb);
+ if(typeof G!=='undefined'&&G.mobs)for(const m of G.mobs)telColor(m);}
+let STRIPE_T=null;function stripeTex(){if(STRIPE_T)return STRIPE_T;const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
+ x.fillStyle='#ffd21f';x.fillRect(0,0,64,64);x.fillStyle='#1a1406';for(let i=-64;i<128;i+=24){x.beginPath();x.moveTo(i,0);x.lineTo(i+12,0);x.lineTo(i+12-64,64);x.lineTo(i-64,64);x.closePath();x.fill();}
+ STRIPE_T=new T.CanvasTexture(c);STRIPE_T.wrapS=STRIPE_T.wrapT=T.RepeatWrapping;STRIPE_T.repeat.set(3,3);return STRIPE_T;}
+function telColor(m){const t=m&&m.mdl&&m.mdl.tel;if(t&&t.material&&t.material.color)t.material.color.setHex(A11Y.cb?0xffd21f:0xff2020);}
 function setQuality(q){QUAL=q;try{localStorage.setItem('so_qual',q)}catch(e){}applyQuality();}
 function resize(){const vv=window.visualViewport;W=Math.round(vv?vv.width:innerWidth)||innerWidth;H=Math.round(vv?vv.height:innerHeight)||innerHeight;document.documentElement.style.setProperty('--visible-height',H+'px');document.documentElement.style.setProperty('--visible-top',(vv?.offsetTop||0)+'px');R.setSize(W,H,false);cam.aspect=W/H;cam.fov=W<H?64:50;cam.updateProjectionMatrix();PF.resize();}
 addEventListener('resize',resize);addEventListener('orientationchange',()=>setTimeout(resize,250));if(window.visualViewport)visualViewport.addEventListener('resize',resize);
@@ -1668,7 +1683,7 @@ function syncHero(){const r=hero.model.root;hero.y=gY(hero.x,hero.z);r.position.
 
 /* ================= ENTITIES ================= */
 function mkMob(d,x,z,boss){if(!d._dm){d=Object.assign({},d,{_dm:1,hp:Math.max(1,Math.round(d.hp*diff().hp))});}const mdl=buildMob(d);mdl.root.position.set(x,gY(x,z),z);world.add(mdl.root);
- return {id:netMid(),el:d.el||LAND_EL[CHS[G.dg&&G.dg.wc!=null?G.dg.wc:S.ch].b]||null,d,x,z,face:rnd(0,6.28),hp:d.hp,mhp:d.hp,r:d.r,boss,mdl,state:'wander',wT:0,wu:0,cd:rnd(.5,1.5),agg:false,wx:x,wz:z,wt:rnd(1,4),flash:0,dead:false,deadT:0,stag:0,stun:0,ripT:0,poise:0,ph:rnd(0,6),moving:false,spT:rnd(2,4),phase:1,combo:0,lunge:0,bar:null,guard:!!d.shield,gb:0};}
+ const _m={id:netMid(),el:d.el||LAND_EL[CHS[G.dg&&G.dg.wc!=null?G.dg.wc:S.ch].b]||null,d,x,z,face:rnd(0,6.28),hp:d.hp,mhp:d.hp,r:d.r,boss,mdl,state:'wander',wT:0,wu:0,cd:rnd(.5,1.5),agg:false,wx:x,wz:z,wt:rnd(1,4),flash:0,dead:false,deadT:0,stag:0,stun:0,ripT:0,poise:0,ph:rnd(0,6),moving:false,spT:rnd(2,4),phase:1,combo:0,lunge:0,bar:null,guard:!!d.shield,gb:0};telColor(_m);return _m;}
 function chMobDefs(c){const base=chLevel(c)+S.ngp*20;return CHS[c].mobs.map((k,i)=>mobDef(k,base+i*2));}
 function spawnMob(near){if(prologueActive())return;const c=S.ch,defs=chMobDefs(c);const ps=NET.on?players():[];const P=near&&ps.length?ps[ri(0,ps.length-1)]:hero;const w=[5,4,3];let r=Math.random()*12,d=defs[0];for(let i=0;i<3;i++){if((r-=w[i])<0){d=defs[i];break;}}
  let x,z,k=0;do{const a=rnd(0,Math.PI*2),rr=near?rnd(12,30):rnd(14,52);x=clamp((near?P.x:0)+Math.cos(a)*rr,-58,58);z=clamp((near?P.z:0)+Math.sin(a)*rr,-58,58);}while((Math.hypot(x-hero.x,z-hero.z)<11||ps.some(q=>Math.hypot(x-q.x,z-q.z)<11)||Math.hypot(x,z)<10||Math.hypot(x,z)>60||Math.hypot(x-AR.x,z-AR.z)<AR.r+4||G.pois.some(p=>Math.hypot(p.x-x,p.z-z)<p.r*.8))&&++k<40);
@@ -1696,13 +1711,13 @@ function fxRing(x,z,r,col,dur=.45,y){const m=mesh(RING(.8,1),basic(col,{transpar
 function fxSlash(x,z,face,col,big,reach){const g=geo('slash',()=>new T.RingGeometry(.75,1,24,1,-Math.PI*.38,Math.PI*.76));const m=mesh(g,basic(col,{transparent:true,opacity:.9,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending}),x,gY(x,z)+1.1,z);m.rotation.x=-Math.PI/2;m.rotation.z=face-Math.PI/2;const s=(reach||2.4)*(big?1.15:1);m.scale.set(s,s,1);m.castShadow=false;world.add(m);G.fx.push({k:'slash',m,t:0,dur:big?.3:.18});}
 function fxSpark(x,y,z,col,s=1.5){const sp=glowSprite(col,s);sp.position.set(x,y,z);world.add(sp);G.fx.push({k:'spark',m:sp,t:0,dur:.3,s});}
 function fxDecal(x,z,r,dur,col,onEnd,arc){const g=grp(x,gY(x,z)+.08,z);const og=arc?geo('arcR'+arc.toFixed(2),()=>new T.RingGeometry(.94,1,40,1,-arc/2,arc)):RING(.94,1);const fg=arc?geo('arcC'+arc.toFixed(2),()=>new T.CircleGeometry(1,40,-arc/2,arc)):CIRC(1);
- const o=mesh(og,basic(col,{transparent:true,opacity:.85,side:T.DoubleSide,depthWrite:false}));o.rotation.x=-Math.PI/2;o.scale.setScalar(r);o.castShadow=false;g.add(o);const f=mesh(fg,basic(col,{transparent:true,opacity:.28,depthWrite:false,side:T.DoubleSide}));f.rotation.x=-Math.PI/2;f.castShadow=false;g.add(f);if(arc!==undefined){g.rotation.y=arc===undefined?0:0;}world.add(g);const e={k:'decal',m:g,f,r,x,z,t:0,dur,onEnd};G.fx.push(e);return e;}
+ const cb=A11Y.cb&&col===0xff2020;const o=mesh(og,basic(cb?0xffffff:col,{transparent:true,opacity:.85,side:T.DoubleSide,depthWrite:false}));o.rotation.x=-Math.PI/2;o.scale.setScalar(r);o.castShadow=false;g.add(o);const f=mesh(fg,basic(cb?0xffffff:col,cb?{map:stripeTex(),transparent:true,opacity:.42,depthWrite:false,side:T.DoubleSide}:{transparent:true,opacity:.28,depthWrite:false,side:T.DoubleSide}));f.rotation.x=-Math.PI/2;f.castShadow=false;g.add(f);if(arc!==undefined){g.rotation.y=arc===undefined?0:0;}world.add(g);const e={k:'decal',m:g,f,r,x,z,t:0,dur,onEnd};G.fx.push(e);return e;}
 function fxMeteor(x,z,col,dur){const m=mesh(SPH(.5,8,6),basic(col),x+3,gY(x,z)+14,z-3);m.add(glowSprite(col,3));m.castShadow=false;world.add(m);G.fx.push({k:'meteor',m,x,z,t:0,dur});}
 function updateFx(dt){for(const f of G.fx){f.t+=dt;const p=Math.min(1,f.t/f.dur);
  if(f.k==='ring'){f.m.scale.setScalar(f.r*(.25+.75*p));f.m.material.opacity=.9*(1-p);}
  else if(f.k==='slash'){f.m.material.opacity=.9*(1-p);}
  else if(f.k==='spark'){const s=f.s*(1+p);f.m.scale.set(s,s,s);f.m.material.opacity=1-p;}
- else if(f.k==='decal'){f.f.scale.setScalar(f.r*p);f.f.material.opacity=.2+.3*p;}
+ else if(f.k==='decal'){f.f.scale.setScalar(f.r*p);f.f.material.opacity=f.f.material.map?.5+.4*p:.2+.3*p;}
  else if(f.k==='fn'){f.u(p,f,dt);}
  else if(f.k==='meteor'){const gy=gY(f.x,f.z);f.m.position.set(lerp(f.x+3,f.x,p),lerp(gy+14,gy,p),lerp(f.z-3,f.z,p));}
  if(f.t>=f.dur){world.remove(f.m);if(f.onEnd)f.onEnd();if(f.k==='meteor'){fxRing(f.x,f.z,2.5,0xff7a2a,.35);PS.burst(f.x,gY(f.x,f.z)+.3,f.z,12,0xff7a2a,{sp:5,up:4});}}}
@@ -2798,7 +2813,7 @@ addEventListener('keyup',e=>{const k=e.key.toLowerCase();keys[k]=0;if(k==='j')G.
 const camT=new T.Vector3();
 function camOff(){const z=G.zoom;return W>H?{y:8.6*z,z:8.4*z}:{y:14*z,z:11*z};}
 function snapCam(){camT.set(hero.x,gY(hero.x,hero.z),hero.z);const o=camOff();cam.position.set(hero.x,camT.y+o.y,hero.z+o.z);cam.lookAt(hero.x,camT.y+1,hero.z);}
-function updateCam(dt){G.zoom=lerp(G.zoom,1,dt*3);const o=camOff();let tx=hero.x,tz=hero.z;const L=hero.lock&&!hero.lock.dead?hero.lock:(G.boss&&!G.boss.dead&&dxz(hero,G.boss)<24?G.boss:null);
+function updateCam(dt){if(A11Y.rm){G.shake=0;G.zoom=1;}G.zoom=lerp(G.zoom,1,dt*3);const o=camOff();let tx=hero.x,tz=hero.z;const L=hero.lock&&!hero.lock.dead?hero.lock:(G.boss&&!G.boss.dead&&dxz(hero,G.boss)<24?G.boss:null);
  let zb=1;if(L){tx=lerp(hero.x,L.x,L.boss?.3:.22);tz=lerp(hero.z,L.z,L.boss?.3:.22);zb=L.boss?1.22:1.05;}
  if(G.intro){const it=G.intro,m=it.m;const p=it.t/it.dur;const hh=m.mdl.h*(m.d.s||1);const a=Math.PI*.15+p*1.1;const r=Math.max(m.r*2.6+4,hh*1.7);const my=gY(m.x,m.z)+hh*.45;cam.position.set(m.x+Math.sin(a)*r,gY(m.x,m.z)+hh*.55+p*2.5,m.z+Math.cos(a)*r);cam.lookAt(m.x,my,m.z);camT.set(hero.x,gY(hero.x,hero.z),hero.z);return;}
  camT.x=lerp(camT.x,tx,Math.min(1,dt*6));camT.z=lerp(camT.z,tz,Math.min(1,dt*6));camT.y=lerp(camT.y,gY(tx,tz),Math.min(1,dt*5));
@@ -3027,6 +3042,9 @@ function renderMenuTab(){const st=G.st=stats(),C=C_();
   Red ground circles are <b>unblockable</b>: roll out. Enemies flash white right before they strike: that's your parry window.<br>Shielded enemies (🛡️) block frontal light attacks. Use heavy attacks or hit them from behind.<br>Dying drops your zeny where you fell. Pick it up again before dying twice.<br><i style="color:#a99cc0">Keyboard: WASD · J light · K heavy · Space dodge · L parry · 1-3 skills · Q flask · R potion · E interact · Tab lock · M menu</i></div>`;
   if(prologueActive())h+=`<div class="card"><div class="ttl">Before the oath</div><button class="mbtn" data-a="skipintro">Skip introduction</button></div>`;
   {const L=backups(SLOT),last=L[0];h+=`<div class="card"><div class="ttl">💾 Save & backups</div><i class="ist">Automatic backups every 10 minutes (the last 3), plus one right before refining +10 and up, a respec, a skill reset or New Game+. ${last?'Latest: '+agoText(last.t)+(last.why?' · '+esc(last.why):''):'No backups yet.'}</i><div class="fbar" style="margin-top:6px"><button data-a="bknow" style="min-height:44px">Back up now</button><button data-a="bkrestore" style="min-height:44px" ${L.length?'':'disabled'}>⟲ Restore earlier save</button></div><i class="ist">To move a character to another device, use the save code below or the save-slot screen (⋯).</i></div>`;}
+  h+=`<div class="card"><div class="ttl">♿ Accessibility</div><div><b>Text size</b></div><div class="fbar">${A11Y_TEXT.map(v=>`<button data-a="a11ytext" data-v="${v}" class="${A11Y.text===v?'on':''}" style="min-height:44px" aria-pressed="${A11Y.text===v}">${Math.round(v*100)}%</button>`).join('')}</div>`
+   +`<div class="fbar" style="margin-top:6px"><button data-a="a11yrm" class="${A11Y.rm?'on':''}" style="min-height:44px" aria-pressed="${A11Y.rm}">${A11Y.rm?'✓':'○'} Reduced motion</button><button data-a="a11ycb" class="${A11Y.cb?'on':''}" style="min-height:44px" aria-pressed="${A11Y.cb}">${A11Y.cb?'✓':'○'} Colour-blind danger markers</button></div>`
+   +`<i class="ist">Reduced motion turns off screen shake, zoom punches, slow-motion, big flashes and blinking. Colour-blind markers show attack warnings as yellow/black stripes instead of red. Saved on this device.</i></div>`;
   h+=`<div class="card"><div class="ttl">Graphics</div><div class="fbar">${['low','medium','high'].map(q=>`<button data-a="qual" data-v="${q}" class="${QUAL===q?'on':''}">${q[0].toUpperCase()+q.slice(1)}</button>`).join('')}</div><i style="color:#a99cc0;font-size:11px">Low: no shadows/bloom (old phones) · Medium: shadows · High: shadows + bloom + more particles. Takes effect on next area load.</i></div>`;
   h+=`<div class="card"><div class="ttl">Difficulty</div><div class="fbar">${DIFF.map((d,i)=>`<button data-a="diff" data-v="${i}" class="${(S.diff!=null?S.diff:2)===i?'on':''}">${d.n}</button>`).join('')}</div><i style="color:#a99cc0;font-size:11px">${diff().d}.</i><br>${FB.uid?'':`<button class="mbtn" data-a="rename">✏️ Rename hero (${heroName()})</button>`}</div>`;
   if(FB.uid)h+=`<div class="card"><div class="ttl">🌐 Account: ${esc(FB.name)}</div><button class="mbtn" data-a="pwchg">🔑 Change password</button></div>`;
@@ -3180,6 +3198,9 @@ function menuAct(a,v,b){let reb=false;sfx('ui');
   case 'lbf':G.lbF=v;break;
   case 'lbr':G.lbT=0;break;
   case 'travel':G.mapSel=null;closeMenu();loadChapter(+v,true);titleCard(+v);save();return;
+  case 'a11ytext':{const n=+v;if(A11Y_TEXT.includes(n)){A11Y.text=n;saveA11y();applyA11y();}break;}
+  case 'a11yrm':{A11Y.rm=!A11Y.rm;saveA11y();applyA11y();break;}
+  case 'a11ycb':{A11Y.cb=!A11Y.cb;saveA11y();applyA11y();break;}
   case 'bknow':{save(true);toast(backupSlot(SLOT,'checkpoint','manual backup')?'💾 Backup saved':'Backup failed: storage may be full',1600);break;}
   case 'bkrestore':{restoreFlow(SLOT).then(ok=>{if(ok){closeMenu();continueGame(loadSave(SLOT));}});break;}
   case 'bkexport':{save(true);const code=exportCode(),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([code],{type:'text/plain'}));a.download=`shadow-oath-slot${SLOT+1}-lv${S.lv}.txt`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);toast('💾 Save file downloaded',1500);return;}
@@ -4512,12 +4533,12 @@ refreshTitle();cloudInit();fbInit();
 {const inApp=/FBAN|FBAV|FB_IAB|FBIOS|Messenger|Instagram|Line\/|WhatsApp|MicroMessenger|TikTok|musical_ly/i.test(navigator.userAgent);const sa=navigator.standalone||matchMedia('(display-mode: standalone)').matches;
  if(inApp){$('#iosTip').style.display='';$('#iosTip').innerHTML='📱 <b>You opened the game inside '+(/Messenger|FBAN|FBAV|FB_IAB|FBIOS/i.test(navigator.userAgent)?'Messenger/Facebook':'another app')+'.</b> For full screen: tap <b>•••</b> → <b>Open in '+(isIOS?'Safari':'Chrome')+'</b>, then '+(isIOS?'<b>Share → Add to Home Screen</b>':'<b>⋮ → Add to Home screen</b>')+'.';}
  else if(isIOS&&!sa){$('#iosTip').style.display='';$('#iosTip').innerHTML='📱 <b>Full screen on iPhone:</b> tap <b>Share ⬆</b> → <b>Add to Home Screen</b>, then open Shadow Oath from your home screen: no address bar, real app. (iPhone Safari does not let web pages go full screen by themselves.)';}}
-applyQuality();
+applyQuality();applyA11y();
 
 /* ================= LOOP ================= */
 let last=performance.now();
 function loop(now){let dt=Math.min(.05,(now-last)/1000);last=now;const rdt=dt;
- if(G.mode==='game'&&S){if(G.hitstop>0){G.hitstop-=dt;dt*=.06;}if(G.slow>0){G.slow-=dt;dt*=.3;}
+ if(G.mode==='game'&&S){if(A11Y.rm){G.slow=0;G.shake=0;G.zoom=1;G.flash=Math.min(G.flash,.12);}if(G.hitstop>0){G.hitstop-=dt;dt*=.06;}if(G.slow>0){G.slow-=dt;dt*=.3;}
   if(!menuOpen&&!dlgOpen)update(dt);else if(NET.on)netBg(dt);if(NET.on)netTick(rdt);animHero(dt);dollTick(dt);statusLive();if(G.endPartner){}updateCam(dt);updateOverlay();G.flash=Math.max(0,G.flash-dt*2);PF.render(G.flash*.6);G.hudT-=dt;if(G.hudT<=0){G.hudT=.08;hud();}}
  else if(G.mode==='ending'){G.t+=dt;animHero(dt);PS.update(dt);const a=G.t*.25;const cy=gY(AR.x,AR.z);cam.position.set(AR.x+Math.sin(a)*7,cy+3.2,AR.z+Math.cos(a)*7);cam.lookAt(AR.x,cy+1.2,AR.z);sky.position.copy(cam.position);if(G.endPartner){G.endPartner.root.rotation.y=-Math.PI/2+Math.sin(G.t)*.1;}updateFx(dt);PF.render(0);}
  else if(G.mode==='preview'){G.t+=dt;drawCreationPreview(dt);}
