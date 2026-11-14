@@ -2468,11 +2468,44 @@ function renderMenu(){const st=G.st=stats(),C=C_();
   h+=`</div><button class="mbtn" data-a="sellr" data-v="0">Sell all Normal</button><button class="mbtn" data-a="sellr" data-v="1">Sell all Silver</button>`;
   const lk=Object.keys(S.loot).filter(k=>S.loot[k].c>0);let tot=0;lk.forEach(k=>tot+=S.loot[k].c*S.loot[k].p);
   h+=`<div class="card"><div class="ttl">Potions & Materials</div>${Object.keys(POT).map(k=>`<span class="pot" style="background:${POT[k].c}"></span>${POT[k].n} ×${S.pots[k]}`).join(' &nbsp; ')}<br>🔷 Oridecon ×${S.ore.ori} &nbsp; 🔶 Elunium ×${S.ore.elu}<br>${lk.map(k=>`${S.loot[k].e} ${k} ×${S.loot[k].c}`).join(' · ')||'<i style="color:#a99cc0">No loot</i>'}</div>${tot?`<button class="mbtn" data-a="sellloot">Sell all loot (+${tot.toLocaleString()} z)</button>`:''}`;}
- else if(G.tab==='forge'){const smith=S.cls==='smith';
-  h+=`<div class="card"><div class="ttl">⚒️ Forge — Refine your gear up to +${REF_MAX}</div>Each refine boosts the item's stats and affix. +1 to +4 is safe. From +5, a <b style="color:#f77">fail</b> drops the item 1 level. From <b>+10 → +11</b> and up, a fail <b style="color:#ff3030">BREAKS the item forever</b> unless you use a 🛡️ Protection Scroll (then it only drops 1 level). <b>+7</b> gives an aura, <b>+15</b> a blazing one.<br>🛡️ Protection Scrolls: <b>${S.prot||0}</b> · <button class="mbtn" style="display:inline-block;width:auto;padding:4px 10px;margin:4px 0" data-a="protuse">${S.useProt?(S.prot>0?'✅ Using scrolls on +11 and up':'⚠️ ON, but you have 0 scrolls'):'⬜ Not using scrolls'}</button> <button class="mbtn" style="display:inline-block;width:auto;padding:4px 10px;margin:4px 0" data-a="buyprot" ${S.zeny>=PROT_PRICE?'':'disabled'}>Buy scroll (${PROT_PRICE.toLocaleString()}z)</button>${smith?'<br><b style="color:#ffd76a">Blacksmith bonus: +15% success, -25% cost.</b>':''}<br>🔷 Oridecon ×${S.ore.ori} · 🔶 Elunium ×${S.ore.elu} · <span class="zen">💰 ${S.zeny.toLocaleString()}</span></div><div class="card">`;
-  const eqIds=Object.values(S.eq).filter(Boolean);const list=S.items.slice().sort((a,b)=>(eqIds.includes(b.id)-eqIds.includes(a.id))||iScore(b)-iScore(a)).slice(0,40);
-  for(const it of list){const rc=refineCost(it),rate=refineRate(it);const can=it.ref<REF_MAX&&S.zeny>=rc.z&&S.ore[rc.ore]>=rc.n;const risk=it.ref>=10?(S.useProt&&S.prot>0?' · 🛡️ protected':' · <b style="color:#ff3030">⚠ can BREAK</b>'):it.ref>=4?' · fail = -1':'';h+=`<div class="row"><span class="nm">${eqIds.includes(it.id)?'<span class="eqd">E</span> ':''}${SLOTI[it.slot]} ${iHtml(it)}<i>${iStat(it)}${it.ref<REF_MAX?`<br>→ +${it.ref+1}: ${Math.round(rate*100)}% · ${rc.z.toLocaleString()}z · ${ORE[rc.ore].e}×${rc.n}${risk}`:' · MAX'}</i></span>${it.ref<REF_MAX?`<button data-a="refine" data-v="${it.id}" ${can?'':'disabled'}>Refine</button>`:''}</div>`;}
-  h+='</div>';}
+ else if(G.tab==='forge'){
+  // Master-detail forge: a picker strip of refinable gear, then a station for the
+  // selected item showing the stat delta, odds, risk band, materials and progress.
+  const smith=S.cls==='smith',eqIds=Object.values(S.eq).filter(Boolean),F=G.fgF||'all';
+  let list=S.items.slice().sort((a,b)=>(eqIds.includes(b.id)-eqIds.includes(a.id))||(b.ref-a.ref)||iScore(b)-iScore(a));
+  if(F==='eq')list=list.filter(i=>eqIds.includes(i.id)); else if(F!=='all')list=list.filter(i=>i.slot===F);
+  let sel=G.fgSel?itemById(G.fgSel):null;
+  if(!sel||!S.items.includes(sel)){sel=list[0]||S.items[0]||null;G.fgSel=sel?sel.id:null;}
+  h+=`<div class="card"><div class="ttl">⚒️ Forge — refine up to +${REF_MAX}${smith?' · <span style="color:#7f7">Blacksmith bonus</span>':''}</div>`
+   +`<div class="fbar">${[['all','All'],['eq','Equipped'],['w','Weapons'],['a','Armor'],['h','Helms'],['l','Masks'],['f','Boots'],['s','Shields'],['r','Rings']].map(x=>`<button data-a="fgf" data-v="${x[0]}" class="${F===x[0]?'on':''}">${x[1]}</button>`).join('')}</div>`
+   +`<div class="fgpick">${list.slice(0,60).map(it=>`<div class="fgtile q${it.rar}${sel&&it.id===sel.id?' on':''}" data-a="fgsel" data-v="${it.id}"><span class="ic">${SLOTI[it.slot]}</span><span class="lv">+${it.ref}</span>${eqIds.includes(it.id)?'<span class="eqb">E</span>':''}</div>`).join('')||'<i class="ist">No gear to refine yet.</i>'}</div></div>`;
+  if(sel){
+   const rc=refineCost(sel),rate=refineRate(sel),pct=Math.round(rate*100),maxed=sel.ref>=REF_MAX;
+   const prot=S.useProt&&S.prot>0, band=sel.ref>=10?(prot?'risky':'deadly'):sel.ref>=4?'risky':'safe';
+   const payZ=S.zeny>=rc.z, payO=S.ore[rc.ore]>=rc.n, canPay=payZ&&payO;
+   const nx=Object.assign({},sel,{ref:sel.ref+1}),dl=[];
+   if(sel.slot==='w')dl.push(['ATK',iAtk(sel),iAtk(nx)]);
+   else if(sel.slot!=='r')dl.push(['DEF',iDef(sel),iDef(nx)]);
+   if(sel.slot==='a')dl.push(['HP',iHp(sel),iHp(nx)]);
+   if(sel.af)dl.push([AFFIX[sel.af.k].n,Math.round(afVal(sel)),Math.round(afVal(nx))]);
+   const risk=band==='safe'?'✓ Safe — a failure only costs materials'
+    :sel.ref>=10&&prot?'🛡️ Protected — a failure drops 1 level and spends a scroll'
+    :sel.ref>=10?'⚠ FAILURE DESTROYS THIS ITEM':'▼ A failure drops it 1 level';
+   h+=`<div class="card fgstation"><div class="fgstage"></div><div class="fginfo">`
+    +`<div class="fgname">${SLOTI[sel.slot]} ${iHtml(sel)}</div>`
+    +(maxed?`<div class="fgstep">+${sel.ref} · MAX</div>`
+      :`<div class="fgstep">+${sel.ref} <b>▶</b> <span class="nxt">+${sel.ref+1}</span></div>`
+      +dl.map(d=>`<div class="fgdelta"><span>${d[0]}</span><span>${d[1]} <b>▶</b> ${d[2]} ${d[2]>d[1]?`<b class="up">+${d[2]-d[1]}</b>`:''}</span></div>`).join('')
+      +`<div class="fgmeter"><div class="bar ${band}" style="width:${Math.max(3,pct)}%"></div><span>${pct}%</span></div>`
+      +(sel.pity?`<div class="fgpity">🔥 Pity +${Math.round(pityB(sel)*100)}% · ${sel.pity} failed attempt${sel.pity>1?'s':''} on this item</div>`:'')
+      +`<div class="fgrisk ${band}">${risk}</div>`
+      +`<div class="fgmat"><span class="${payZ?'':'no'}">💰 ${rc.z.toLocaleString()} / ${S.zeny.toLocaleString()}</span><span class="${payO?'':'no'}">${ORE[rc.ore].e} ${ORE[rc.ore].n} ${rc.n} / ${S.ore[rc.ore]}</span></div>`)
+    +`<div class="fgrail">${Array.from({length:REF_MAX},(_,i)=>`<i class="pip ${i<sel.ref?'on ':''}${i>=10?'d':i>=4?'r':'s'}"></i>`).join('')}</div>`
+    +`<div class="ia"><button class="fgo ${band}" data-a="refine" data-v="${sel.id}" ${maxed||!canPay?'disabled':''}>${maxed?'MAXED':'REFINE'}</button></div>`
+    +`<div class="fbar">${[4,10,REF_MAX].filter(t=>t>sel.ref).map(t=>`<button data-a="refineto" data-v="${t}" ${canPay?'':'disabled'}>→ +${t}</button>`).join('')}`
+    +`<button data-a="protuse" class="${S.useProt?'on':''}">🛡️ ${S.useProt?'ON':'OFF'} · ${S.prot||0}</button></div>`
+    +`<i class="ist">Bulk refining stops before any attempt that could destroy the item, unless Protection is on with scrolls left.</i>`
+    +`</div></div>`;}}
  else if(G.tab==='shop'){const tier=chTier(S.unlocked);
   h+=`<div class="card"><div class="ttl">🏪 Traveling Merchant</div><span class="zen">💰 ${S.zeny.toLocaleString()} zeny</span> · You can carry at most ${POT_MAX} of each potion. Your flask refills for free at any Site of Grace.</div><div class="card"><div class="ttl">Supplies</div>`;
   for(const k in POT){const p=POT[k];h+=`<div class="row"><span class="nm"><span class="pot" style="background:${p.c}"></span>${p.n} (have ${S.pots[k]}/${POT_MAX})<i>${p.hp?'Heals '+Math.round(p.hp*100)+'% HP':'Restores '+Math.round(p.sp*100)+'% SP'} · ${p.price}z</i></span><button data-a="buy" data-v="${k}" ${S.zeny>=p.price&&S.pots[k]<POT_MAX?'':'disabled'}>Buy</button></div>`;}
@@ -2499,14 +2532,44 @@ function renderMenu(){const st=G.st=stats(),C=C_();
   h+=`<div class="card"><div class="ttl">Sound</div><button class="mbtn" data-a="music">🎵 Music: ${S.music?'ON':'OFF'}</button><button class="mbtn" data-a="sfxt">🔊 Effects: ${S.sfx?'ON':'OFF'}</button></div>`;
   h+=`<div class="card"><div class="ttl">Save</div><b>${saveStatus()}</b><br>The game auto-saves every few seconds, when you close or leave the page, at every rest, and on every quest/boss. Use <b>Continue</b> on the title screen.<br><button class="mbtn" data-a="save">💾 Save now</button><button class="mbtn" data-a="fs">⛶ Fullscreen</button><button class="mbtn" data-a="title">🏠 Save &amp; Title</button><br><br><b>Save code</b> (copy this somewhere safe; paste it on the title screen with "Load from save code" on any device):<br><textarea class="code" id="saveCode" readonly>${exportCode()}</textarea><button class="mbtn" data-a="copy">📋 Copy code</button>
   <button class="mbtn" data-a="reset" style="border-color:#c44;float:right">🗑️ Delete Save</button></div>`;}
- $('#mBody').innerHTML=h;if(G.tab==='bag')dollWire();if(G.tab==='chat')chatWire();if(G.tab==='online')friendsWire();}
+ $('#mBody').innerHTML=h;if(G.tab==='bag')dollWire();if(G.tab==='forge')fgWire();if(G.tab==='chat')chatWire();if(G.tab==='online')friendsWire();}
 function refineCost(it){const sm=S.cls==='smith';return {z:Math.round(150*(it.tier+1)*(it.ref+1)*(1+it.rar*.5)*(it.ref>=10?1+(it.ref-9)*.35:1)*(sm?.75:1)),ore:it.slot==='w'?'ori':'elu',n:1+Math.floor(it.ref/4)};}
-function refineRate(it){const b=REF_RATE[Math.min(REF_MAX-1,it.ref)];return Math.min(1,b+(S.cls==='smith'&&it.ref>=4?(it.ref>=10?b*.3:.15):0));}
+const pityB=it=>Math.min(.45,(it.pity||0)*.03);
+function refineRate(it){const b=REF_RATE[Math.min(REF_MAX-1,it.ref)];
+ const sm=(S.cls==='smith'&&it.ref>=4?(it.ref>=10?b*.3:.15):0);
+ return Math.min(1,b+sm+pityB(it));}
+/* One refine attempt: spend, roll, apply. Returns a result code so single and bulk
+   refining share identical odds and side effects rather than duplicating them. */
+function doRefine(it){
+ const rc=refineCost(it);
+ if(it.ref>=REF_MAX||S.zeny<rc.z||S.ore[rc.ore]<rc.n)return {r:'cant'};
+ S.zeny-=rc.z;S.ore[rc.ore]-=rc.n;
+ const from=it.ref;
+ if(Math.random()<refineRate(it)){it.pity=0;it.ref++;return {r:'up',from,to:it.ref};}
+ it.pity=(it.pity||0)+1;
+ if(from>=10){
+  if(S.useProt&&S.prot>0){S.prot--;it.ref--;return {r:'save',from,to:it.ref};}
+  const nm=iName(it);
+  for(const k in S.eq)if(S.eq[k]===it.id)S.eq[k]=null;
+  S.items=S.items.filter(x=>x!==it);
+  return {r:'broke',from,nm};
+ }
+ if(from>=5)it.ref--;
+ return {r:'down',from,to:it.ref};
+}
+function fgResult(R,it){
+ if(R.r==='up'){toast(`✨ <b style="color:#7f7">REFINE SUCCESS!</b><br>${iHtml(it)}`,1800);sfx('forge');
+  if(it.ref>=15){bigText('+'+it.ref+'!','#ffd76a',1500);sfx('stier');}
+  if(FB.uid&&it.ref>=15)chatSys(`⚒️ ${FB.name} refined ${iName(it)}!`);}
+ else if(R.r==='save'){toast(`\U0001F4A5 <b style="color:#f77">Refine failed...</b><br>\U0001F6E1️ Protection Scroll saved it · dropped to +${R.to}`,2200);sfx('deny');}
+ else if(R.r==='broke'){toast(`\U0001F494 <b style="color:#ff3030">THE ITEM BROKE!</b><br>${R.nm} is gone...`,2600);bigText('BROKEN','#c41e1e',1600);sfx('deny');G.shake=.3;}
+ else if(R.r==='down'){toast(`\U0001F4A5 <b style="color:#f77">Refine failed...</b>${R.from!==R.to?'<br>Dropped to +'+R.to:''}`,1800);sfx('deny');}
+}
 const oreP=k=>(k==='ori'?400:350)*(1+S.unlocked*.25)|0;
 const boxP=()=>Math.round(800*Math.pow(S.unlocked+1,1.25));
 $('#menu').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;menuAct(b.dataset.a,b.dataset.v,b);});
 function menuAct(a,v,b){let reb=false;sfx('ui');
- switch(a){case 'close':closeMenu();return;case 'tab':G.tab=v;break;case 'bagf':G.bagF=v;break;case 'slot':eqPop(v);return;
+ switch(a){case 'close':closeMenu();return;case 'tab':G.tab=v;break;case 'bagf':G.bagF=v;break;case 'slot':eqPop(v);return;case 'fgsel':G.fgSel=+v;break;case 'fgf':G.fgF=v;break;
   case 'sklearn':learnSkill(v[0],+v.slice(1));break;
   case 'skj':G.skJ=+v;G.skSel='';break;
   case 'sksel':G.skSel=G.skSel===v?'':v;break;
@@ -2531,12 +2594,23 @@ function menuAct(a,v,b){let reb=false;sfx('ui');
   case 'box':{const p=boxP();if(S.zeny>=p){S.zeny-=p;const r=Math.random();const e=rollEquip(chTier(S.unlocked),false);e.tier=chTier(S.unlocked);e.rar=r<.15?3:r<.5?2:1;e.af=rollAffix(e.slot,e.rar);collect({e});toast(`🎁 You got ${iHtml(S.items[S.items.length-1])}!`,2200);if(e.rar===3){bigText('S-TIER!','#ff2a2a',1600);sfx('stier');}reb=true;}break;}
   case 'refine':{const it=itemById(+v);if(!it)break;const rc=refineCost(it);if(it.ref>=REF_MAX||S.zeny<rc.z||S.ore[rc.ore]<rc.n)break;
    if(it.ref>=10&&!(S.useProt&&S.prot>0)&&!G.brkOk){G.brkOk=1;ask(`⚠️ <b>${iName(it)}</b> → +${it.ref+1}<br>Success ${Math.round(refineRate(it)*100)}%. If it fails, the item <b style="color:#ff3030">BREAKS and is gone forever</b>.<br><small>Turn on 🛡️ Protection Scrolls to keep it safe.</small>`,['Refine anyway','Cancel']).then(r=>{if(r===0){menuAct('refine',v);}G.brkOk=0;});return;}
-   G.brkOk=0;S.zeny-=rc.z;S.ore[rc.ore]-=rc.n;
-   if(Math.random()<refineRate(it)){it.ref++;toast(`✨ <b style="color:#7f7">REFINE SUCCESS!</b><br>${iHtml(it)}`,1800);sfx('forge');if(it.ref>=15){bigText('+'+it.ref+'!','#ffd76a',1500);sfx('stier');}if(FB.uid&&it.ref>=15)chatSys(`⚒️ ${FB.name} refined ${iName(it)}!`);}
-   else if(it.ref>=10){if(S.useProt&&S.prot>0){S.prot--;it.ref--;toast(`💥 <b style="color:#f77">Refine failed...</b><br>🛡️ Protection Scroll saved it · dropped to +${it.ref}`,2200);sfx('deny');}
-    else{const nm=iName(it);for(const k in S.eq)if(S.eq[k]===it.id){S.eq[k]=null;reb=true;}S.items=S.items.filter(x=>x!==it);toast(`💔 <b style="color:#ff3030">THE ITEM BROKE!</b><br>${nm} is gone...`,2600);bigText('BROKEN','#c41e1e',1600);sfx('deny');G.shake=.3;}}
-   else{const old=it.ref;if(it.ref>=5)it.ref--;toast(`💥 <b style="color:#f77">Refine failed...</b>${old!==it.ref?'<br>Dropped to +'+it.ref:''}`,1800);sfx('deny');}
+   G.brkOk=0;const R=doRefine(it);fgResult(R,it);if(R.r==='broke')G.fgSel=null;
    if(Object.values(S.eq).includes(it.id))reb=true;break;}
+  case 'refineto':{const it=itemById(+G.fgSel);if(!it)break;
+   const tgt=Math.min(REF_MAX,+v||it.ref+1);let up=0,down=0,tries=0,broke=false,stop='';
+   while(it.ref<tgt&&tries<60){
+    // never auto-run into the destroy band unprotected: that is the user's call, not a loop's
+    if(it.ref>=10&&!(S.useProt&&S.prot>0)){stop='Stopped at +'+it.ref+' — next fail would destroy it';break;}
+    const rc=refineCost(it);
+    if(S.zeny<rc.z||S.ore[rc.ore]<rc.n){stop='Ran out of materials at +'+it.ref;break;}
+    const R=doRefine(it);tries++;
+    if(R.r==='cant')break;
+    if(R.r==='up')up++;else if(R.r==='broke'){broke=true;fgResult(R,it);break;}else down++;
+   }
+   if(!broke)toast(`⚒️ Bulk refine · <b style="color:#7f7">${up} up</b> · <b style="color:#f77">${down} failed</b><br>Now <b>+${it.ref}</b>${stop?'<br><small>'+stop+'</small>':''}`,2400);
+   if(broke)G.fgSel=null;
+   if(up||down)sfx(up?'forge':'deny');
+   if(Object.values(S.eq).includes(it.id)||broke)reb=true;break;}
   case 'neton':FB.online=!FB.online;try{localStorage.setItem('so_online',FB.online?'1':'0')}catch(e){}if(FB.online)netJoin(S.ch);else{netLeave();if(!G.mobs.some(m=>!m.dead&&!m.boss))for(let i=0;i<mobMax();i++)spawnMob(false);}toast(FB.online?'🌐 Online play ON':'Online play OFF (solo world)',1600);break;
   case 'emote':netEmote(v);closeMenu();return;
   case 'chc':G.chC=v;break;
@@ -3706,14 +3780,36 @@ dscene.add(new T.HemisphereLight(0xd8c8ff,0x221a30,.95));
 {const a=new T.DirectionalLight(0xffe6c0,1.15);a.position.set(3,6,5);dscene.add(a);
  const b=new T.DirectionalLight(0xaecbff,.55);b.position.set(-4,3,-5);dscene.add(b);}
 const dcam=new T.PerspectiveCamera(34,.78,.1,50);
-let DR=null,dollCv=null,dollM=null,dollSig='',dollRot=.5,dollT=0,dollDrag=null;
+/* One canvas, one WebGL context, shared by the Equipment paper-doll and the Forge
+   item stage. They live on different tabs and are never visible together, so the
+   canvas is moved between hosts rather than spawning a second context. */
+let PR=null,panelCv=null,panelDrag=null,panelSpin=.5,panelT=0;
+let dollM=null,dollSig='';
+function panelDraw(){if(G.tab==='bag')dollRender();else if(G.tab==='forge')fgRender();}
+function panelMount(sel){
+ const host=$(sel);if(!host)return null;
+ if(!panelCv){
+  panelCv=document.createElement('canvas');panelCv.id='panelCv';
+  let px=0;
+  panelCv.addEventListener('pointerdown',e=>{panelDrag=e.pointerId;px=e.clientX;try{panelCv.setPointerCapture(e.pointerId)}catch(err){}e.stopPropagation();});
+  panelCv.addEventListener('pointermove',e=>{if(panelDrag!==e.pointerId)return;panelSpin+=(e.clientX-px)*.012;px=e.clientX;panelDraw();});
+  const end=e=>{if(panelDrag===e.pointerId)panelDrag=null;};
+  panelCv.addEventListener('pointerup',end);panelCv.addEventListener('pointercancel',end);
+ }
+ if(panelCv.parentNode!==host)host.insertBefore(panelCv,host.firstChild);
+ return panelCv;
+}
+function panelRender(scene,cam,place){
+ if(!panelCv)return;
+ const w=panelCv.clientWidth,h=panelCv.clientHeight;if(!w||!h)return;
+ if(!PR){try{PR=new T.WebGLRenderer({canvas:panelCv,antialias:QUAL!=='low',alpha:true});PR.setClearColor(0x000000,0);}catch(e){PR=null;return;}}
+ PR.setPixelRatio(Math.min(window.devicePixelRatio||1,Q().dpr));PR.setSize(w,h,false);
+ cam.aspect=w/h;place(cam);cam.updateProjectionMatrix();PR.render(scene,cam);
+}
 function dollRender(){
- if(!dollCv||!dollM)return;
- const w=dollCv.clientWidth,h=dollCv.clientHeight;if(!w||!h)return;
- if(!DR){try{DR=new T.WebGLRenderer({canvas:dollCv,antialias:QUAL!=='low',alpha:true});DR.setClearColor(0x000000,0);}catch(e){DR=null;return;}}
- DR.setPixelRatio(Math.min(window.devicePixelRatio||1,Q().dpr));DR.setSize(w,h,false);
- dcam.aspect=w/h;dcam.position.set(0,1.62,4.4);dcam.lookAt(0,.95,0);dcam.updateProjectionMatrix();
- dollM.root.rotation.y=dollRot;DR.render(dscene,dcam);
+ if(!dollM)return;
+ dollM.root.rotation.y=panelSpin;
+ panelRender(dscene,dcam,c=>{c.position.set(0,1.62,4.4);c.lookAt(0,.95,0);});
 }
 function dollBuild(){
  if(!S)return;const sig=JSON.stringify(S.eq)+'|'+(S.job||0)+'|'+S.cls+'|'+S.hero;
@@ -3722,21 +3818,58 @@ function dollBuild(){
  dollM=buildHero(S.hero,S.cls,eqVisFromSave(),{cust:S.cust,job:S.job||0});dscene.add(dollM.root);
 }
 function dollWire(){
- const st=$('.eqstage');if(!st)return;
- if(!dollCv){
-  dollCv=document.createElement('canvas');dollCv.id='eqDollC';
-  let px=0;
-  dollCv.addEventListener('pointerdown',e=>{dollDrag=e.pointerId;px=e.clientX;try{dollCv.setPointerCapture(e.pointerId)}catch(err){}e.stopPropagation();});
-  dollCv.addEventListener('pointermove',e=>{if(dollDrag!==e.pointerId)return;dollRot+=(e.clientX-px)*.012;px=e.clientX;dollRender();});
-  const end=e=>{if(dollDrag===e.pointerId)dollDrag=null;};
-  dollCv.addEventListener('pointerup',end);dollCv.addEventListener('pointercancel',end);
- }
- if(dollCv.parentNode!==st)st.insertBefore(dollCv,st.firstChild);
+ if(!panelMount('.eqstage'))return;
  dollBuild();dollRender();
 }
 function dollTick(dt){
- if(!menuOpen||G.tab!=='bag'||!dollM||dollDrag!=null)return;
- dollT+=dt;if(dollT<.05)return;dollT=0;dollRot+=.018;dollRender();
+ if(!menuOpen||panelDrag!=null)return;
+ if(G.tab!=='bag'&&G.tab!=='forge')return;
+ panelT+=dt;if(panelT<.05)return;panelT=0;panelSpin+=.018;panelDraw();
+}
+/* Forge stage: the selected item alone, auto-framed from its bounding box — a
+   staff and a ring differ enormously in size, so a fixed camera can't serve both. */
+const fscene=new T.Scene();
+fscene.add(new T.HemisphereLight(0xffd8b0,0x2a1a10,.85));
+{const a=new T.DirectionalLight(0xffd0a0,1.5);a.position.set(2.5,4,3.5);fscene.add(a);
+ const b=new T.DirectionalLight(0x8ab0ff,.5);b.position.set(-3,2,-3);fscene.add(b);}
+const fcam=new T.PerspectiveCamera(36,1,.1,60);
+let fgM=null,fgSig='';
+function buildRing(it){
+ const g=new T.Group(),t=Math.min(5,it.tier),M=rarMat(it.rar,it.ref);
+ const r=mesh(TOR(.18,.045),M,0,0,0);r.rotation.x=Math.PI/2;g.add(r);
+ if(t>=1)g.add(mesh(OCT(.07+t*.012),basic(RCOL[it.rar]),0,.19,0));
+ if(t>=4){const gs=glowSprite(RCOL[it.rar],.55);gs.position.set(0,.19,0);g.add(gs);}
+ return g;
+}
+function buildItemModel(it){
+ if(it.slot==='w')return buildWeapon(C_().wt,it);
+ if(it.slot==='a')return buildArmor(it,C_().robe);
+ if(it.slot==='h')return buildHelm(it);
+ if(it.slot==='s')return buildShield(it);
+ if(it.slot==='l')return buildLowerHead(it);
+ if(it.slot==='f')return buildBoots(it);
+ return buildRing(it);
+}
+function fgBuild(it){
+ const sig=it?it.id+'|'+it.ref+'|'+it.rar+'|'+it.tier+'|'+it.slot:'';
+ if(sig===fgSig)return;fgSig=sig;
+ if(fgM){fscene.remove(fgM);fgM=null;}
+ if(it){fgM=buildItemModel(it);fscene.add(fgM);}
+}
+const _fb=new T.Box3(),_fs=new T.Vector3(),_fc=new T.Vector3();
+function fgRender(){
+ if(!fgM)return;
+ fgM.rotation.y=panelSpin;
+ panelRender(fscene,fcam,c=>{
+  _fb.setFromObject(fgM);_fb.getSize(_fs);_fb.getCenter(_fc);
+  const r=Math.max(_fs.x,_fs.y,_fs.z)*.5||.4;
+  const d=r/Math.tan(c.fov*Math.PI/360)*2.1;
+  c.position.set(_fc.x,_fc.y+r*.12,_fc.z+d);c.lookAt(_fc.x,_fc.y,_fc.z);
+ });
+}
+function fgWire(){
+ if(!panelMount('.fgstage'))return;
+ fgBuild(G.fgSel?itemById(G.fgSel):null);fgRender();
 }
 /* Item detail popup, opened by tapping a slot tile. */
 function eqPop(sl){
