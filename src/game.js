@@ -5,6 +5,7 @@ import {accountDialog} from './account-ui.js';
 import {FIELD_LESSONS, fieldLesson, advanceFieldLesson, chargeImpact, isFieldPrologue, fieldsAreRestored} from './verdant.js';
 import {PARABELLUM, PARABELLUM_JOB, planParabellum} from './parabellum.js';
 import {refineOre, COMBINE, combine, combineMax, refineBonus, nextRefineMilestone} from './refine.js';
+import {parseSave, validSave, addBackup, exportCode as bxExport, importCode as bxImport, BACKUP_EVERY} from './backup.js';
 import {planAuto, AUTO_MAX, AUTO_REFRESH, AUTO_REFRESH_OPTIONS} from './autoplan.js';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
@@ -1454,6 +1455,7 @@ const CLOUD={db:null,uid:null,ready:false,busy:false,pend:null,lastCore:'',saves
 const cdoc=i=>CLOUD.db.doc('data/users/'+CLOUD.uid+'/'+(i?'save'+i:'save'));
 function saveCore(){const ts=S.ts,pl=S.play;S.ts=0;S.play=0;const c=JSON.stringify(S);S.ts=ts;S.play=pl;return c;}
 function save(force){if(!S)return false;S.ts=Date.now();const j=JSON.stringify(S);let ok=false;try{localStorage.setItem(skey(SLOT),j);localStorage.setItem(SKEY+'_last',''+SLOT);ok=true}catch(e){}
+ if(ok&&Date.now()-(BKT[SLOT]||0)>=BACKUP_EVERY){BKT[SLOT]=Date.now();backupSlot(SLOT,'auto','',j);}
  try{if(window.pywebview&&window.pywebview.api&&window.pywebview.api.save_game)window.pywebview.api.save_game(j,SLOT);}catch(e){}
  const core=SLOT+'|'+saveCore();if(CLOUD.ready&&(force||core!==CLOUD.lastCore))cloudPush(SLOT,j,core);
  if(FB.uid){if(force)FB.lastCore[SLOT]='';fbSave(SLOT,j,core);lbUpdate();}return ok||CLOUD.ready||!!FB.uid;}
@@ -1464,6 +1466,42 @@ function cloudPush(i,j,core){if(CLOUD.busy){CLOUD.pend=[i,j,core];return;}CLOUD.
 function loadLocal(i){try{const s=localStorage.getItem(skey(i));return s?JSON.parse(s):null}catch(e){return null}}
 let DESK=[null,null,null];
 function loadSave(i){if(i===undefined)i=SLOT;const c=(FB.uid?[loadLocal(i),FB.saves[i]]:[loadLocal(i),CLOUD.saves[i],DESK[i]]).filter(Boolean);if(!c.length)return null;return c.reduce((a,b)=>(b.ts||0)>(a.ts||0)?b:a);}
+/* ===== Save recovery (Phase 6 Pass B, rules in src/backup.js) =====
+   Each slot keeps its last 3 automatic backups (one per 10 minutes) plus one
+   checkpoint taken right before a risky action. Backups survive deleting a slot. */
+const bkey=i=>skey(i)+'_bk',BKT={};
+function backups(i){try{const v=JSON.parse(localStorage.getItem(bkey(i))||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}}
+// storage full: drop the oldest backups until the list fits
+function writeBackups(i,list){for(let n=list.length;n>=0;n--){try{localStorage.setItem(bkey(i),JSON.stringify(list.slice(0,n)));return n;}catch(e){}}return 0;}
+function backupSlot(i,kind,why,j){if(!j){try{j=(i===SLOT&&S)?JSON.stringify(S):localStorage.getItem(skey(i));}catch(e){j=null;}}if(!j)return false;
+ const r=parseSave(j);if(r.state!=='ok')return false;const out=addBackup(backups(i),{j,why,lv:r.save.lv,ch:r.save.ch,cls:r.save.cls},{now:Date.now(),kind});return !!out&&writeBackups(i,out)>0;}
+function checkpoint(why){if(S)backupSlot(SLOT,'checkpoint',why,JSON.stringify(S));}
+function slotRaw(i){try{return localStorage.getItem(skey(i));}catch(e){return null;}}
+function slotState(i){return loadSave(i)?'ok':parseSave(slotRaw(i)).state;}
+function agoText(t){const m=Math.max(0,Math.round((Date.now()-t)/60000));return m<1?'just now':m<60?m+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' d ago';}
+// write a save into slot i through the normal save path (local, cloud and account)
+function writeSlot(i,s){s.ts=Date.now();const ps=S,pi=SLOT;S=s;SLOT=i;save(true);if(G.mode!=='game'){S=ps;SLOT=pi;}}
+async function restoreFlow(i){const list=backups(i);if(!list.length){await ask(`No backups for Slot ${i+1} yet.<br><small>Backups are made automatically while you play.</small>`,['OK']);return false;}
+ const L=list.slice(0,4),pick=await ask(`⟲ <b>Restore Slot ${i+1}</b><br><small>Pick a backup. 🛡️ = taken right before a risky action.</small>`,L.map(b=>`${b.kind==='checkpoint'?'🛡️':'⟲'} Lv ${b.lv} · Ch.${(b.ch||0)+1} · ${agoText(b.t)}${b.why?'<br><small>'+esc(b.why)+'</small>':''}`).concat(['Cancel']));
+ if(pick<0||pick>=L.length)return false;const r=parseSave(L[pick].j);if(r.state!=='ok'){toast('That backup is damaged',1800);return false;}
+ if(await ask(`Replace Slot ${i+1} with this backup?<br><small>Your current save is kept as a backup, so you can undo this.</small>`,['Restore','Cancel'])!==0)return false;
+ if(slotState(i)==='ok')backupSlot(i,'checkpoint','before restoring a backup',i===SLOT&&S&&G.mode==='game'?JSON.stringify(S):null);
+ writeSlot(i,r.save);toast('⟲ Slot '+(i+1)+' restored',1800);sfx('quest');return true;}
+async function exportFlow(i){if(i===SLOT&&S&&G.mode==='game')save(true);const s=loadSave(i);if(!s){toast('Nothing to export',1400);return;}const code=bxExport(JSON.stringify(s));
+ const r=await ask(`⇪ <b>Save code</b> · Slot ${i+1} · ${esc(heroName(s))} Lv ${s.lv}<br><small>Import it on another device from the save-slot screen. Keep it private: anyone with it can load your character.</small><textarea readonly id="expTa" style="width:100%;height:84px;margin-top:8px;font-size:11px;background:#0e0a18;color:#cbbde3;border:1px solid #47355f;border-radius:8px;word-break:break-all">${esc(code)}</textarea>`,['📋 Copy code','💾 Download file','Close']);
+ if(r===0){try{await navigator.clipboard.writeText(code);toast('📋 Save code copied',1500);}catch(e){toast('Copy failed: use Download instead',2200);}}
+ else if(r===1){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([code],{type:'text/plain'}));a.download=`shadow-oath-slot${i+1}-lv${s.lv}.txt`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);toast('💾 Save file downloaded',1500);}}
+// accepts new SO1 codes (with checksum), raw save JSON, and older plain base64 codes
+function readSaveText(t){t=String(t||'').trim();if(t.startsWith('SO1.'))return bxImport(t);let r=parseSave(t);
+ if(r.state!=='ok'&&!t.startsWith('{')){try{r=parseSave(decodeURIComponent(escape(atob(t.replace(/\s+/g,'')))));}catch(e){}}
+ return r.state==='ok'&&CLASSES[r.save.cls]?{ok:true,save:r.save}:{ok:false,error:'This is not a valid Shadow Oath save code.'};}
+function pickFileText(){return new Promise(res=>{const f=document.createElement('input');f.type='file';f.accept='.txt,.json,text/plain,application/json';f.style.display='none';
+ f.onchange=()=>{const file=f.files&&f.files[0];f.remove();if(!file||file.size>5e6){res(null);return;}const rd=new FileReader();rd.onload=()=>res(String(rd.result));rd.onerror=()=>res(null);rd.readAsText(file);};document.body.appendChild(f);f.click();});}
+async function importFlow(i){const how=await ask(`⇩ <b>Import a save into Slot ${i+1}</b>`,['📋 Paste save code','📂 Choose save file','Cancel']);if(how!==0&&how!==1)return false;
+ const text=how===0?await askText('Paste your save code','Import'):await pickFileText();if(text==null||text==='')return false;
+ const r=readSaveText(text);if(!r.ok){await ask('⚠️ '+esc(r.error),['OK']);return false;}
+ const st=slotState(i);if(st!=='empty'&&await ask(`Slot ${i+1} is not empty. Replace it with <b>${esc(heroName(r.save))} Lv ${r.save.lv}</b>?<br><small>The current save is kept as a backup.</small>`,['Replace','Cancel'])!==0)return false;
+ if(st==='ok')backupSlot(i,'checkpoint','before importing a save');writeSlot(i,r.save);toast('⇩ Save imported into Slot '+(i+1),1800);sfx('quest');return true;}
 function deleteSlot(i){try{localStorage.removeItem(skey(i))}catch(e){}if(FB.uid){fbDelete(i);return;}CLOUD.saves[i]=null;if(CLOUD.ready)cloudPush(i,null,'');DESK[i]=null;try{if(window.pywebview)window.pywebview.api.delete_game(i);}catch(e){}}
 function lastSlot(){try{return +(localStorage.getItem(SKEY+'_last')||0)}catch(e){return 0}}
 window.addEventListener('pywebviewready',async()=>{try{for(let i=0;i<3;i++){const j=await window.pywebview.api.load_game(i);if(j)DESK[i]=JSON.parse(j);}if(typeof refreshTitle==='function'&&G.mode==='title')refreshTitle();}catch(e){}});
@@ -1477,8 +1515,8 @@ function saveStatus(){if(FB.uid)return '🌐 Account: '+FB.name+' · '+(FB.saveS
 const heroName=s=>{s=s||S;return (s&&s.cust&&s.cust.name)||HEROES[s.hero].name;};
 const partnerName=s=>{s=s||S;return (s&&s.cust&&s.cust.pname)||HEROES[s.hero==='L'?'C':'L'].name;};
 const diff=()=>DIFF[NET.on&&NET.diff!=null?NET.diff:S&&S.diff!=null?S.diff:2];
-function exportCode(){return btoa(unescape(encodeURIComponent(JSON.stringify(S))));}
-function importCode(code){try{const s=JSON.parse(decodeURIComponent(escape(atob(code.trim().replace(/\s+/g,'')))));if(s&&(s.v===2||s.v===3)&&s.cls&&CLASSES[s.cls])return s;}catch(e){}return null;}
+function exportCode(){return bxExport(JSON.stringify(S));}
+function importCode(code){const r=readSaveText(code);return r.ok?r.save:null;}
 function newItem(slot,tier,rar,ref,af){return {id:S.nid++,slot,tier,rar,ref:ref||0,af:af||null};}
 function freshSave(hk,ck,cust,df){
  S={v:5,hero:hk,cls:ck,cust:cust||null,diff:df==null?1:df,skp:0,sk:{a0:1},bar:[0,null,null,null,null,null],parabellum:[],fields:{version:1,stage:0,counts:{},keepsake:false},job:0,lv:1,exp:0,st:Object.assign({},CLASSES[ck].base),pts:0,zeny:150,pots:{red:3,orange:0,white:0,blue:1},loot:{},ore:{ori:2,elu:2,eori:0,eelu:0,mori:0,melu:0},items:[],eq:{w:null,s:null,a:null,h:null,l:null,f:null,r:null,r2:null},nid:1,ch:0,unlocked:0,cleared:[],q:[],flask:3,blood:null,auto:0,autoEq:1,ngp:0,done:0,music:1,sfx:1,play:0};
@@ -2082,7 +2120,7 @@ function parabellumHtml(){const p=parabellumPlan(),selected=Array.isArray(S.para
  if(selected.length)h+=`<button class="mbtn" data-a="pbclear">Clear buffs</button>`;
  h+='<div>Assign Parabellum to a skill slot:</div><div class="skbar">'+S.bar.map((v,i)=>`<button class="mbtn" data-a="pbbar" data-v="${i}" aria-label="Assign Parabellum to slot ${i+1}">${i+1}${v===PARABELLUM?' ✓':''}</button>`).join('')+'</div></div>';
  return h;}
-function skReset(){const cost=S.lv*200;if(S.zeny<cost){toast('Reset costs '+cost.toLocaleString()+' zeny');return;}S.zeny-=cost;S.sk={};S.parabellum=[];S.autoCfg=null;S.bar=Array(BAR_N).fill(null);skSync();toast('Skills reset. '+S.skp+' points refunded.');}
+function skReset(){const cost=S.lv*200;if(S.zeny<cost){toast('Reset costs '+cost.toLocaleString()+' zeny');return;}checkpoint('before a skill reset');S.zeny-=cost;S.sk={};S.parabellum=[];S.autoCfg=null;S.bar=Array(BAR_N).fill(null);skSync();toast('Skills reset. '+S.skp+' points refunded.');}
 function skNodeInfo(kind,i){const C=C_();const d0=(kind==='a'?C.sk:C.ps)[i];const lv=kind==='a'?skLv(i):psLv(i);return {d0,lv,why:canLearn(kind,i)};}
 function skStatLine(i,lv){const key='a'+i,old=S.sk[key];S.sk[key]=Math.max(1,lv);const sk=C_().sk[i],d=skDef(i);if(old===undefined)delete S.sk[key];else S.sk[key]=old;
  const a=[];if(d.m)a.push(Math.round(d.m*100*(d.hits||1))+'% dmg');if(d.hits>1)a.push(d.hits+' hits');if(d.v&&sk.t==='buff')a.push(Math.round(d.v*100)+'% for '+d.dur+'s');if(d.bon)a.push(bonText(d.bon)+' for '+d.dur+'s');if(d.v&&sk.t==='heal')a.push(`heals ${Math.round(d.v*100)}% MATK + INT×${HEAL_INT} ≈ ${healAmt(d.v).toLocaleString()} HP`);if(d.stun)a.push('stun '+d.stun.toFixed(1)+'s');a.push(d.sp+' SP');a.push(d.cd+'s cd');return a.join(' · ');}
@@ -2988,11 +3026,12 @@ function renderMenuTab(){const st=G.st=stats(),C=C_();
   <b>⚔️ LIGHT</b> fast attack (hold for combos) · <b>💢 HEAVY</b> slow, powerful, breaks guards and stances<br><b>🌀 DODGE</b> roll with invincibility frames (no stick = backstep)<br><b>🛡️ PARRY</b> press just as an enemy strikes (shield classes: keep holding to raise a guard — blocks frontal hits for stamina) → they get stunned and your next hit is a <b style="color:#ffd76a">CRITICAL riposte</b><br><b>1-4</b> skill bar (set it up in the Skills tab) · <b>🩸 FLASK</b> heals 45%, refills at a Site of Grace · <b>🧪</b> potions (max 5 each)<br>
   Red ground circles are <b>unblockable</b>: roll out. Enemies flash white right before they strike: that's your parry window.<br>Shielded enemies (🛡️) block frontal light attacks. Use heavy attacks or hit them from behind.<br>Dying drops your zeny where you fell. Pick it up again before dying twice.<br><i style="color:#a99cc0">Keyboard: WASD · J light · K heavy · Space dodge · L parry · 1-3 skills · Q flask · R potion · E interact · Tab lock · M menu</i></div>`;
   if(prologueActive())h+=`<div class="card"><div class="ttl">Before the oath</div><button class="mbtn" data-a="skipintro">Skip introduction</button></div>`;
+  {const L=backups(SLOT),last=L[0];h+=`<div class="card"><div class="ttl">💾 Save & backups</div><i class="ist">Automatic backups every 10 minutes (the last 3), plus one right before refining +10 and up, a respec, a skill reset or New Game+. ${last?'Latest: '+agoText(last.t)+(last.why?' · '+esc(last.why):''):'No backups yet.'}</i><div class="fbar" style="margin-top:6px"><button data-a="bknow" style="min-height:44px">Back up now</button><button data-a="bkrestore" style="min-height:44px" ${L.length?'':'disabled'}>⟲ Restore earlier save</button></div><i class="ist">To move a character to another device, use the save code below or the save-slot screen (⋯).</i></div>`;}
   h+=`<div class="card"><div class="ttl">Graphics</div><div class="fbar">${['low','medium','high'].map(q=>`<button data-a="qual" data-v="${q}" class="${QUAL===q?'on':''}">${q[0].toUpperCase()+q.slice(1)}</button>`).join('')}</div><i style="color:#a99cc0;font-size:11px">Low: no shadows/bloom (old phones) · Medium: shadows · High: shadows + bloom + more particles. Takes effect on next area load.</i></div>`;
   h+=`<div class="card"><div class="ttl">Difficulty</div><div class="fbar">${DIFF.map((d,i)=>`<button data-a="diff" data-v="${i}" class="${(S.diff!=null?S.diff:2)===i?'on':''}">${d.n}</button>`).join('')}</div><i style="color:#a99cc0;font-size:11px">${diff().d}.</i><br>${FB.uid?'':`<button class="mbtn" data-a="rename">✏️ Rename hero (${heroName()})</button>`}</div>`;
   if(FB.uid)h+=`<div class="card"><div class="ttl">🌐 Account: ${esc(FB.name)}</div><button class="mbtn" data-a="pwchg">🔑 Change password</button></div>`;
   h+=`<div class="card"><div class="ttl">Sound</div><button class="mbtn" data-a="music">🎵 Music: ${S.music?'ON':'OFF'}</button><button class="mbtn" data-a="sfxt">🔊 Effects: ${S.sfx?'ON':'OFF'}</button></div>`;
-  h+=`<div class="card"><div class="ttl">Save</div><b>${saveStatus()}</b><br>The game auto-saves every few seconds, when you close or leave the page, at every rest, and on every quest/boss. Use <b>Continue</b> on the title screen.<br><button class="mbtn" data-a="save">💾 Save now</button><button class="mbtn" data-a="fs">⛶ Fullscreen</button><button class="mbtn" data-a="title">🏠 Save &amp; Title</button><br><br><b>Save code</b> (copy this somewhere safe; paste it on the title screen with "Load from save code" on any device):<br><textarea class="code" id="saveCode" readonly>${exportCode()}</textarea><button class="mbtn" data-a="copy">📋 Copy code</button>
+  h+=`<div class="card"><div class="ttl">Save</div><b>${saveStatus()}</b><br>The game auto-saves every few seconds, when you close or leave the page, at every rest, and on every quest/boss. Use <b>Continue</b> on the title screen.<br><button class="mbtn" data-a="save">💾 Save now</button><button class="mbtn" data-a="fs">⛶ Fullscreen</button><button class="mbtn" data-a="title">🏠 Save &amp; Title</button><br><br><b>Save code</b> (copy this somewhere safe; paste it on the title screen with "Load from save code" on any device):<br><textarea class="code" id="saveCode" readonly>${exportCode()}</textarea><button class="mbtn" data-a="copy">📋 Copy code</button><button class="mbtn" data-a="bkexport">💾 Download file</button>
   <button class="mbtn" data-a="reset" style="border-color:#c44;float:right">🗑️ Delete Save</button></div>`;}
  $('#mBody').innerHTML=h;$('#mBody').classList.toggle('fill',G.tab==='chat');if(G.tab==='bag')dollWire();if(G.tab==='forge')fgWire();if(G.tab==='chat')chatWire();if(G.tab==='online')friendsWire();}
 function refineCost(it){const sm=S.cls==='smith';return {z:Math.round(150*(it.tier+1)*(it.ref+1)*(1+it.rar*.5)*(it.ref>=10?1+(it.ref-9)*.35:1)*(sm?.75:1)),...refineOre(it.slot,it.ref)};}
@@ -3005,6 +3044,7 @@ function refineRate(it){const b=REF_RATE[Math.min(REF_MAX-1,it.ref)];
 function doRefine(it){
  const rc=refineCost(it);
  if(it.ref>=REF_MAX||S.zeny<rc.z||S.ore[rc.ore]<rc.n)return {r:'cant'};
+ if(it.ref>=10)checkpoint(`before refining ${iName(it)} to +${it.ref+1}`);
  S.zeny-=rc.z;S.ore[rc.ore]-=rc.n;
  const from=it.ref;
  if(Math.random()<refineRate(it)){it.pity=0;it.ref++;return {r:'up',from,to:it.ref};}
@@ -3073,7 +3113,7 @@ function menuAct(a,v,b){let reb=false;sfx('ui');
    if(!ptsSpent(S.st)){toast('Nothing allocated yet',1200);break;}
    if(S.zeny<cost){toast('Respec costs '+cost.toLocaleString()+' zeny',1500);break;}
    ask(`↺ <b>Respec stats?</b><br>Every allocated point is refunded for <b>${cost.toLocaleString()}z</b>.`,['Respec','Cancel']).then(r=>{if(r!==0)return;
-    S.zeny-=cost;S.st=Object.assign({},CLASSES[S.cls].base);G.st=stats();
+    checkpoint('before a stat respec');S.zeny-=cost;S.st=Object.assign({},CLASSES[S.cls].base);G.st=stats();
     hero.hp=Math.min(hero.hp,G.st.mhp);hero.sp=Math.min(hero.sp,G.st.msp);
     sfx('quest');toast('↺ Stats reset — '+ptsLeft().toLocaleString()+' points to spend',2200);save(true);renderMenu();});
    break;}
@@ -3140,6 +3180,9 @@ function menuAct(a,v,b){let reb=false;sfx('ui');
   case 'lbf':G.lbF=v;break;
   case 'lbr':G.lbT=0;break;
   case 'travel':G.mapSel=null;closeMenu();loadChapter(+v,true);titleCard(+v);save();return;
+  case 'bknow':{save(true);toast(backupSlot(SLOT,'checkpoint','manual backup')?'💾 Backup saved':'Backup failed: storage may be full',1600);break;}
+  case 'bkrestore':{restoreFlow(SLOT).then(ok=>{if(ok){closeMenu();continueGame(loadSave(SLOT));}});break;}
+  case 'bkexport':{save(true);const code=exportCode(),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([code],{type:'text/plain'}));a.download=`shadow-oath-slot${SLOT+1}-lv${S.lv}.txt`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);toast('💾 Save file downloaded',1500);return;}
   case 'skipintro':closeMenu();finishFieldPrologue(true);return;
   case 'qual':setQuality(v);toast('Graphics: '+v+' (reloads on next area)',1600);break;
   case 'music':S.music=S.music?0:1;musicFor(S.ch,!!G.bossFight||!!G.surv);break;
@@ -4234,13 +4277,19 @@ function getProfile(){if(FB.uid&&FB.name)return FB.name;try{return localStorage.
 async function askName(change){let n='';while(true){n=await askText((change?'Change your player name':'Welcome, traveller! Enter your <b>player name</b>')+'<br><small>2-12 letters or numbers. It is your hero\'s name, and later your online name.</small>','Confirm');if(n===null&&change)return getProfile();n=(n||'').trim().replace(/\s+/g,' ');if(/^[A-Za-z0-9 _]{2,12}$/.test(n))break;await ask('Please use 2-12 letters, numbers, spaces or _',['OK']);}try{localStorage.setItem(PKEY,n)}catch(e){}refreshTitle();return n;}
 $('#tWel').onclick=()=>{if(FB.uid){toast('Your online name is your username: '+FB.name,1800);return;}askName(true);};
 function refreshTitle(){refreshAcct();const pn=getProfile();$('#tWel').innerHTML=pn?`Welcome, <b style="color:#e8c26a">${pn}</b>${FB.uid?'':' <span style="opacity:.6;font-size:11px">✏️ change</span>'}`:'';$('#saveSt').textContent=saveStatus();const any=[0,1,2].some(i=>loadSave(i));$('#tPlay').textContent=any?'▶ Play':'⚔️ New Game';if($('#slotScr').classList.contains('show'))renderSlots();}
-function renderSlots(){let h='';for(let i=0;i<3;i++){const inf=slotInfo(i);h+=inf?`<div class="slot"><div class="si">${CLASSES[inf.s.cls]?CLASSES[inf.s.cls].ic:'💾'}</div><div class="st">Slot ${i+1}<br>${inf.txt}</div><button data-s="${i}" data-a="cont">Continue</button><button class="del" data-s="${i}" data-a="del">🗑</button></div>`
- :`<div class="slot"><div class="si" style="opacity:.4">＋</div><div class="st">Slot ${i+1}<br><i>Empty</i></div><button data-s="${i}" data-a="new">New Game</button></div>`;}
+function renderSlots(){let h='';for(let i=0;i<3;i++){const inf=slotInfo(i),st=inf?'ok':slotState(i),nb=backups(i).length,more=`<button class="more" data-s="${i}" data-a="more" aria-label="More options for slot ${i+1}">⋯</button>`;
+ h+=inf?`<div class="slot"><div class="si">${CLASSES[inf.s.cls]?CLASSES[inf.s.cls].ic:'💾'}</div><div class="st">Slot ${i+1}<br>${inf.txt}</div><button data-s="${i}" data-a="cont">Continue</button><button class="del" data-s="${i}" data-a="del" aria-label="Delete slot ${i+1}">🗑</button>${more}</div>`
+ :st==='damaged'?`<div class="slot dmg"><div class="si">⚠️</div><div class="st">Slot ${i+1}<br><b>Damaged save</b><br><small>${nb?nb+' backup'+(nb>1?'s':'')+' available':'No backup found'}</small></div>${nb?`<button data-s="${i}" data-a="restore">Restore</button>`:''}<button class="ghost" data-s="${i}" data-a="new">New Game</button>${more}</div>`
+ :`<div class="slot"><div class="si" style="opacity:.4">＋</div><div class="st">Slot ${i+1}<br><i>Empty</i>${nb?`<br><small>${nb} backup${nb>1?'s':''} kept</small>`:''}</div><button data-s="${i}" data-a="new">New Game</button>${more}</div>`;}
  $('#slotList').innerHTML=h;}
 $('#slotList').onclick=async e=>{const b=e.target.closest('[data-a]');if(!b)return;const i=+b.dataset.s,a=b.dataset.a;audioStart();sfx('ui');
  if(a==='cont'){SLOT=i;goFull();continueGame(loadSave(i));}
- else if(a==='new'){SLOT=i;goFull();openSelect();}
- else if(a==='del'){const inf=slotInfo(i);if(await ask(`Delete Slot ${i+1} (${heroName(inf.s)} Lv ${inf.s.lv})? This cannot be undone.`,['Delete','Cancel'])===0){deleteSlot(i);renderSlots();refreshTitle();}}};
+ else if(a==='new'){if(slotState(i)==='damaged'&&await ask(`Start a new game in Slot ${i+1}?<br><small>The damaged save will be replaced. Backups are kept.</small>`,['New Game','Cancel'])!==0)return;SLOT=i;goFull();openSelect();}
+ else if(a==='del'){const inf=slotInfo(i);if(await ask(`Delete Slot ${i+1} (${heroName(inf.s)} Lv ${inf.s.lv})?<br><small>Its backups are kept: you can restore it later from ⋯.</small>`,['Delete','Cancel'])===0){backupSlot(i,'checkpoint','before deleting the slot');deleteSlot(i);renderSlots();refreshTitle();}}
+ else if(a==='restore'){if(await restoreFlow(i)){renderSlots();refreshTitle();}}
+ else if(a==='more'){const ok=slotState(i)==='ok',nb=backups(i).length;const opts=(ok?['⟲ Restore earlier save','⇪ Export save']:['⇩ Import save'].concat(nb?['⟲ Restore backup']:[])).concat(['Cancel']);
+  const k=await ask(`Slot ${i+1}`,opts),pick=opts[k]||'';
+  if(pick.includes('Restore')){if(await restoreFlow(i)){renderSlots();refreshTitle();}}else if(pick.includes('Export'))await exportFlow(i);else if(pick.includes('Import')){if(await importFlow(i)){renderSlots();refreshTitle();}}}};
 $('#slotBack').onclick=()=>{showScreen('titleScr');};
 function toTitle(){netLeave();G.dg=null;if(NET.duel)NET.duel=null;G.mode='title';showGameUI(false);$('#bossbar').style.display='none';refreshTitle();showScreen('titleScr');if(G.npcLbl)G.npcLbl.style.display='none';musicFor(-1,false);presenceUpdate();}
 function initHero(){G.st=stats();Object.assign(hero,{hp:G.st.mhp,sp:G.st.msp,sta:G.st.msta,cd:[0,0,0,0,0],dead:false,buffs:{},lock:null,flask:S.flask,state:'idle'});}
@@ -4258,7 +4307,7 @@ function startEnding(kind){G.endKind=kind||'';G.mode='ending';showGameUI(false);
  hero.x=AR.x-.7;hero.z=AR.z;hero.face=Math.PI/2;hero.state='idle';hero.dead=false;pm.root.position.set(AR.x+.9,gY(AR.x+.9,AR.z),AR.z);pm.root.rotation.y=-Math.PI/2;world.add(pm.root);G.endPartner=pm;syncHero();sfx('ending');musicFor(0,false);
  for(let i=0;i<40;i++)setTimeout(()=>PS.burst(AR.x+rnd(-4,4),gY(AR.x,AR.z)+rnd(0,3),AR.z+rnd(-4,4),3,[0xffd76a,0xff8ac0,0xffffff][i%3],{sp:1,up:2,g:-.5,life:2}),i*150);
  $('#endNew').style.display=kind==='dawn'?'none':'';$('#endTxt').innerHTML=(kind==='dawn'?`Ava is free and Eldoria shines again.<br>${heroName()} the ${jobName()} finished all ${CHS.length} chapters!`:`${heroName()} the ${jobName()} rescued ${partnerName()} after 20 chapters!<br><b style="color:#c9a0ff">But the rift still glows... a New World awaits.</b>`)+`<br>Final level ${S.lv} · 💰 ${S.zeny.toLocaleString()} zeny · ${Math.round(S.play/60)} minutes played`;showScreen('endScr');}
-$('#endCont').onclick=()=>{if(G.endPartner)world.remove(G.endPartner.root);G.endPartner=null;S.ngp++;if(S.fields?.version===1){S.fields.stage=0;S.fields.counts={};}S.unlocked=0;for(let i=0;i<CHS.length;i++){S.cleared[i]=0;S.q[i]={s:0,p:0,shr:[0,0,0]};}S.done=0;S.done2=0;startGame();loadChapter(0);toast('New Game+ '+S.ngp+': enemies are '+(S.ngp*20)+' levels stronger. Your gear and level carry over.',3500);save();};
+$('#endCont').onclick=()=>{checkpoint('before New Game+');if(G.endPartner)world.remove(G.endPartner.root);G.endPartner=null;S.ngp++;if(S.fields?.version===1){S.fields.stage=0;S.fields.counts={};}S.unlocked=0;for(let i=0;i<CHS.length;i++){S.cleared[i]=0;S.q[i]={s:0,p:0,shr:[0,0,0]};}S.done=0;S.done2=0;startGame();loadChapter(0);toast('New Game+ '+S.ngp+': enemies are '+(S.ngp*20)+' levels stronger. Your gear and level carry over.',3500);save();};
 $('#endNew').onclick=()=>{if(G.endPartner)world.remove(G.endPartner.root);G.endPartner=null;S.unlocked=Math.max(S.unlocked,20);startGame();loadChapter(20);titleCard(20);story(CHS[20].intro);save(true);};
 $('#endTitle').onclick=()=>{if(G.endPartner)world.remove(G.endPartner.root);G.endPartner=null;toTitle();};
 
@@ -4451,7 +4500,7 @@ $('#cuRename').onclick=async()=>{await askName(true);refreshPreview();};
 $('#tPlay').onclick=async()=>{audioStart();if(FB.avail&&FB.ready&&!FB.uid&&!G.askedLogin){G.askedLogin=1;const r=await ask('<b>Choose how to play</b><br><small>Log in for account save sync and online features. Play solo without an account to save on this device. New heroes start with Hero → Appearance → Journey, then an optional introduction.</small>',['🔑 Log in / Create account','Play offline']);if(r===0&&await loginDialog())await afterLogin();}
  if(!getProfile())await askName(false);if(![0,1,2].some(i=>loadSave(i))){SLOT=0;goFull();openSelect();return;}showScreen('slotScr');renderSlots();};
 $('#tLoad').onclick=async()=>{audioStart();const code=await askText('Paste your save code:','Load');if(!code)return;const s=importCode(code);if(!s){await ask('That save code is not valid.',['OK']);return;}
- const r=await ask('Load it into which slot?<br><small>'+[0,1,2].map(i=>{const f=slotInfo(i);return 'Slot '+(i+1)+': '+(f?heroName(f.s)+' Lv '+f.s.lv+' (will be replaced)':'empty');}).join('<br>')+'</small>',['Slot 1','Slot 2','Slot 3','Cancel']);if(r>2)return;SLOT=r;S=s;save(true);goFull();continueGame(s);};
+ const r=await ask('Load it into which slot?<br><small>'+[0,1,2].map(i=>{const f=slotInfo(i);return 'Slot '+(i+1)+': '+(f?heroName(f.s)+' Lv '+f.s.lv+' (will be replaced)':'empty');}).join('<br>')+'</small>',['Slot 1','Slot 2','Slot 3','Cancel']);if(r>2)return;if(slotState(r)==='ok')backupSlot(r,'checkpoint','before loading a save code');SLOT=r;S=s;save(true);goFull();continueGame(s);};
 $('#selBack').onclick=()=>{if(CU.step>0){setCreationStep(CU.step-1);return;}G.mode='title';showScreen([0,1,2].some(i=>loadSave(i))?'slotScr':'titleScr');};
 $('#selGo').onclick=()=>{audioStart();if(CU.step<2){setCreationStep(CU.step+1);return;}if(!CU.fac){toast('Choose your Faction first',1600);const g=$('#facGrid');g.classList.remove('need');void g.offsetWidth;g.classList.add('need');setCreationStep(2);$('#facGrid button').focus();sfx('deny');return;}goFull();newGame(selH,selC,custObj(),CU.diff,CU.fac);};
 $('#rotSkip').onclick=()=>document.body.classList.add('noRot');

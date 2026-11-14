@@ -94,6 +94,13 @@ Keep entries short. Do not delete entries; mark them **Resolved** if the cause i
 - **Rule:** For screenshots, move the hero in front of the subject (camera sits south
   of the hero, looking north), then `snapCam()`. Clear test leftovers first.
 
+### 11. Almost duplicating an existing feature (2026-11-14)
+- **What happened:** While adding save export/import, a second export was written before
+  noticing the game already had a save-code box in Settings and "Load from save code"
+  on the title screen. That existing loader was also broken for current (v5) saves.
+- **Rule:** Before adding a feature, search for an existing one (UI text, `data-a`
+  actions, function names) and extend or fix it instead of adding a parallel path.
+
 ## How to check the game in real time (CDP)
 
 When a headless scenario is inconclusive, launch Chrome with

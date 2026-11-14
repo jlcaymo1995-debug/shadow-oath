@@ -635,6 +635,14 @@ body.fx-glass .mwrap{backdrop-filter:blur(18px) saturate(1.25);-webkit-backdrop-
 .account-modal button:focus-visible{outline:2px solid white;outline-offset:2px}
 .account-modal button:disabled{opacity:.5;cursor:wait}
 @media(max-height:500px){#modal.account-modal>div{padding:10px!important}.account-modal #mdB{grid-template-columns:1fr 1fr}.account-intro{margin-bottom:8px}}
+/* save slots: damaged state and the ⋯ menu */
+.slot.dmg{border-color:#c55!important;background:rgba(90,31,42,.35)}
+#slotList .slot button.more{min-width:44px;min-height:44px;padding:0 10px;font-size:18px;line-height:1}
+#slotList .slot button.ghost{background:transparent;border:1px solid #6a5a8a}
+#slotList .slot button{min-height:44px}
+/* narrow screens: slot info on top, actions in their own row underneath */
+@media (max-width:560px){#slotList .slot{flex-wrap:wrap}#slotList .slot .st{flex:1 1 calc(100% - 60px);min-width:0}
+ #slotList .slot button{flex:1 1 auto}#slotList .slot button.del,#slotList .slot button.more{flex:0 0 52px}}
 </style>
 </head>
 <body>

@@ -18,8 +18,14 @@
       per STR+INT point; Increase Agility: faster attacks and running; Gloria: crits).
       Their labels show the icons, mirrored to other players.
       Check: '?buffs' at all six device sizes in CLAUDE.md.
-   B. Save recovery: rolling backups per slot, restore earlier save, corrupted-save
-      detection, export/import.
+   B. Save recovery — implemented (rules in src/backup.js): each slot keeps its last
+      3 automatic backups (at most one per 10 minutes) plus a checkpoint right before
+      refining +10 and up, a respec, a skill reset, New Game+, deleting a slot,
+      restoring or loading a code. Backups survive deleting a slot. Damaged saves
+      show as "Damaged save" (not Empty) with Restore. Slot ⋯ menu: restore, export,
+      import (code or file). Save codes now use `SO1.<base64>.<checksum>`; old plain
+      codes still load, and the old importer's v2/v3-only bug (current saves are v5)
+      is fixed. If storage is full, the oldest backups are dropped. Check: '?saves'.
    C. Accessibility: text size, reduced motion, colour-blind-friendly danger markers.
    D. Progression clarity: "What's next" card, job-trial requirements, chapter levels.
 
