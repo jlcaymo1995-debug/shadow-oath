@@ -2741,7 +2741,8 @@ function lbHtml(){if(!G.lbT||Date.now()-G.lbT>30000)lbFetch();const f=G.lbF||'p'
  const d=G.lbData;if(!d)return h+'<div class="card">'+(G.lbErr?'Could not load the leaderboard ('+G.lbErr+').':'Loading…')+'</div>';
  const DI=['🌱','⚖️','💀'];
  if(f==='p'){h+='<div class="card">';d.slice(0,100).forEach((r,i)=>{const fa=FACTIONS.find(x=>x.k===r.fa),C=CLASSES[r.c];const me=r.uid===FB.uid;
-   h+=`<div class="row" style="${me?'background:rgba(232,194,106,.12)':''}"><span class="nm"><b style="color:${i<3?['#ffd76a','#dfeaff','#e0a070'][i]:'#a99cc0'};display:inline-block;width:30px">#${i+1}</b><span style="color:${fa?fa.c:'#fff'}">${fa?fa.e+' ':''}${r.n}</span> ${DI[r.d!=null?r.d:2]}<i>${jn(r.c,r.j)} · Lv ${r.l} · ${r.cl||0}/${CHS.length} ch · ${r.bk||0} bosses${r.ng?' · NG+'+r.ng:''}${r.pv?' · ⚔️'+r.pv:''}</i></span><b style="color:#ffd76a">${(r.sc||0).toLocaleString()}</b></div>`;});
+   const top=d[0]&&d[0].sc?d[0].sc:1,pct=Math.max(2,Math.min(100,(r.sc||0)/top*100));
+   h+=`<div class="lbr ${i<3?'q'+(3-i):''}${me?' me':''}"><span class="rk ${i<3?'m'+i:''}">${i+1}</span><div class="lbb"><span class="inm"><span style="color:${fa?fa.c:'#fff'}">${fa?fa.e+' ':''}${r.n}</span> ${DI[r.d!=null?r.d:2]}</span><i class="ist">${jn(r.c,r.j)} · Lv ${r.l} · ${r.cl||0}/${CHS.length} ch · ${r.bk||0} bosses${r.ng?' · NG+'+r.ng:''}${r.pv?' · ⚔️'+r.pv:''}</i><div class="fgmeter lbm"><div class="bar xp" style="width:${pct}%"></div><span>${(r.sc||0).toLocaleString()}</span></div></div></div>`;});
   if(!d.length)h+='<i>No scores yet. Be the first!</i>';h+='</div>';}
  else{const t={};for(const r of d){if(!r.fa)continue;const o=t[r.fa]=t[r.fa]||{sc:0,cnt:0,top:null};o.sc+=r.sc||0;o.cnt++;if(!o.top)o.top=r;}
   const fs=FACTIONS.map(x=>({f:x,o:t[x.k]||{sc:0,cnt:0,top:null}})).sort((a,b)=>b.o.sc-a.o.sc);h+='<div class="card">';

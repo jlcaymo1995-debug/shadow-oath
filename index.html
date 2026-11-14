@@ -497,6 +497,22 @@ body.fx-glass .mwrap{backdrop-filter:blur(18px) saturate(1.25);-webkit-backdrop-
 .chatin button{flex:0 0 auto;padding:8px 15px;border-radius:8px;font-weight:700;font-size:13px;
   background:#3b2758;border:1px solid #e8c26a;color:#f8e9c4}
 .chatw .note{font-size:10.5px;color:#a99cc0;margin-top:5px}
+
+/* ===================== LEADERBOARD =====================
+   Rank as a badge, score as a bar normalised to #1 so relative standing reads at
+   a glance, and the top three reuse the rarity accents as podium metals. */
+.lbr{display:flex;align-items:center;gap:9px;padding:7px 8px;margin-top:5px;border-radius:10px;
+  background:rgba(14,9,24,.4);border:1px solid rgba(120,95,170,.22)}
+.lbr.me{border-color:rgba(232,194,106,.6);background:rgba(232,194,106,.09)}
+.lbr .rk{flex:0 0 30px;height:30px;display:flex;align-items:center;justify-content:center;
+  border-radius:8px;font-size:13px;font-weight:800;color:#a99cc0;
+  background:rgba(0,0,0,.34);border:1px solid rgba(120,95,170,.3)}
+.lbr .rk.m0{color:#231633;background:#e8b22a;border-color:#ffd76a}
+.lbr .rk.m1{color:#112;background:#c9d6e6;border-color:#dfeaff}
+.lbr .rk.m2{color:#2a1608;background:#c98a52;border-color:#e0a070}
+.lbr .lbb{flex:1 1 auto;min-width:0}
+.lbr .lbm{height:14px;margin-top:4px}
+.lbr .lbm span{font-size:10.5px}
 </style>
 </head>
 <body>
