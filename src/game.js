@@ -358,6 +358,7 @@ function statDelta(k){const a=stats();S.st[k]++;const b=stats();S.st[k]--;const 
  if(b.msp>a.msp)o.push('SP +'+(b.msp-a.msp));
  if(b.def>a.def)o.push('DEF +'+(b.def-a.def));
  if(b.crit>a.crit)o.push('Crit +'+Math.round((b.crit-a.crit)*100)+'%');
+ if(b.flee>a.flee)o.push('Flee +'+((b.flee-a.flee)*100).toFixed(1)+'%');
  if(b.aspdM>a.aspdM)o.push('Spd +'+(b.aspdM-a.aspdM).toFixed(2));
  if(b.msta>a.msta)o.push('Sta +'+(b.msta-a.msta));
  return o.slice(0,3).join(' · ');}
@@ -1448,6 +1449,9 @@ function stats(){
   staR:(42+sc(st.agi)*.3)*(1+afSum('sta')+psVal('stap')),staC:1-psVal('stap')*.5,
   def:Math.round((st.vit*.7+['a','h','s','l','f'].reduce((n,k)=>n+(eq[k]?iDef(eq[k]):0),0))*(1+innV('knight'))),
   aspdM:Math.min(2.4,(1+sc(st.agi)*.012+sc(st.dex)*.004)*(1+(Bf.aspd?Bf.aspd.v:0)+(Bf.awk?Bf.awk.v*.4:0))*(1+psVal('aspp'))),
+  // Flee: raw allocated AGI (not the x3.4 combat weight) at .2%/pt, capped 20%;
+  // the Assassin innate stacks on top, keeping them the evasion class (up to 42%).
+  flee:Math.min(.2,(S.st.agi||0)*.002)+innV('assassin'),
   crit:Math.min(.6,.03+sc(st.luk)*.004+sc(st.agi)*.001+(C.crit||0)+(w&&w.rar===2?.04:0)+(w&&w.rar===3?.08:0)+afSum('crit')+psVal('critp')+innV('archer')+innV('acrobat')/3),
   ls:afSum('ls')+psVal('lsp'),sls:afSum('sls')+psVal('slsp'),zenyM:1+afSum('zeny')+psVal('zenp')+innV('acrobat'),spR:(.8+st.int*.08)*(1+afSum('sp')+psVal('spp')),
   red:Math.min(.6,sRed+(Bf.dr?Bf.dr.v:0)+(Bf.awk?.15:0)+psVal('defp')),
@@ -1546,7 +1550,8 @@ function canAct(kind){if(hero.dead||!G.st||G.intro)return false;const s=hero.sta
  if(s==='light'&&hero.actT>hero.actDur*.62)return true;
  if(kind==='roll'&&(s==='light'||s==='heavy'||s==='cast')&&hero.hitDone)return true;
  if(kind==='roll'&&s==='drink'&&hero.actT>.5)return true;
- if(kind==='roll'&&s==='parry'&&hero.actT>.32)return true;return false;}
+ if(kind==='roll'&&s==='parry'&&hero.actT>.32)return true;
+ if(s==='guard')return kind==='roll'||kind==='light'||kind==='heavy';return false;}
 function lightAttack(){if(!canAct('light')){if(['light','heavy'].includes(hero.state)&&hero.actT>hero.actDur*.35)hero.queued='light';return;}
  const C=C_();if(!useSta(C.ranged?8:12))return;const t=softTarget();if(t)faceTo(t);
  hero.combo=hero.comboT>0?(hero.combo+1)%3:0;hero.comboT=1.1;hero.state='light';hero.actT=0;hero.hitDone=false;hero.actDur=C.aspd/G.st.aspdM*(hero.combo===2?1.25:1);hero.queued=null;sfx(C.ranged?'draw':'swing');}
@@ -1626,7 +1631,27 @@ function applyPoise(m,po,rip,kind,local){const hy=gY(m.x,m.z)+m.mdl.h*(m.d.s||1)
 function heroHit(dmg,src,unblock,pv,x){if(hero.dead||G.intro)return 'x';const st=G.st;
  if(hero.iframe){return 'dodge';}
  if(hero.parryOn&&!unblock){parrySuccess(src);return 'parry';}
- {const fl=innV('assassin')*(x&&x.acc?.5:1);if(fl>0&&!unblock&&Math.random()<fl){txt(hero.x,hero.y+2.5,hero.z,'MISS','#9affc8',true);fxSpark(hero.x,hero.y+1.2,hero.z,0x9affc8,1.6);sfx('whiff');return 'dodge';}}
+ {const fl=(st.flee||0)*(x&&x.acc?.5:1);if(fl>0&&!unblock&&Math.random()<fl){txt(hero.x,hero.y+2.5,hero.z,'MISS','#9affc8',true);fxSpark(hero.x,hero.y+1.2,hero.z,0x9affc8,1.6);sfx('whiff');return 'dodge';}}
+ if(hero.state==='guard'&&C_().shield&&!unblock){
+  // Mirror of the mob shield: frontal cone ±1.2 rad, reduction scaled by the
+  // shield item, stamina per blocked hit; an empty bar means GUARD BROKEN.
+  // Red/unblockable attacks never test this branch. Sourceless damage (no
+  // attacker position) is treated as frontal.
+  const front=!src||src.x==null||Math.abs(angDiff(Math.atan2(src.x-hero.x,src.z-hero.z),hero.face))<1.2;
+  if(front){
+   const sh=eqItems().s,red=Math.min(.8,.5+(sh?sh.tier*.04+(sh.ref||0)*.012:0));
+   let bd=Math.max(1,Math.round(dmg*(pv?1:diff().dmg)*(1-red)*(100/(100+st.def*(pv?1.6:1)))));
+   if(pv)bd=Math.min(bd,Math.max(1,Math.round(st.mhp*pv)));
+   const cost=10+Math.round(bd*.5);
+   if(hero.sta>=cost){
+    hero.sta-=cost;G.lastPv=bd;hero.hp-=bd;hero.lastHit=G.t;
+    txt(hero.x,hero.y+2.3,hero.z,'BLOCKED '+bd,'#9ab',false);sfx('block');
+    fxSpark(hero.x+Math.sin(hero.face)*.7,hero.y+1.2,hero.z+Math.cos(hero.face)*.7,0xaaccff,1.6);
+    if(hero.hp<=0)heroDie();return 'hit';}
+   hero.sta=0;hero.state='stun';hero.actT=0;hero.actDur=.9;hero.queued=null;
+   txt(hero.x,hero.y+2.5,hero.z,'GUARD BROKEN','#ffd76a',true);sfx('guardbreak');G.shake=.25;
+  }
+ }
  if(x&&x.mg)dmg*=1-innV('wizard');
  let d=Math.max(1,Math.round(dmg*(pv?1:diff().dmg)*rnd(.92,1.08)*(100/(100+st.def*(pv?1.6:1)))*(1-st.red)*(hero.state==='drink'?1.3:1)));if(pv)d=Math.min(d,Math.max(1,Math.round(st.mhp*pv)));else d=Math.min(d,Math.round(st.mhp*.85));G.lastPv=d;hero.hp-=d;hero.lastHit=G.t;txt(hero.x,hero.y+2.4,hero.z,'-'+d,'#ff5a5a',d>st.mhp*.2);G.shake=Math.max(G.shake,d>st.mhp*.2?.4:.18);sfx(d>st.mhp*.25?'hurtbig':'hurt');
  PS.burst(hero.x,hero.y+1.2,hero.z,8,0xff3a3a,{sp:2.5,up:2.5,s:.7});
@@ -2128,7 +2153,8 @@ function update(dt){
    if(mag>.12&&s==='light'&&!C.ranged){hero.x+=inp.x*1.2*dt;hero.z+=inp.z*1.2*dt;}
    if(hero.actT>=hero.actDur){hero.state='idle';const q=hero.queued;hero.queued=null;if(q==='light'||G.lightHeld)lightAttack();else if(q==='heavy')heavyAttack();}}
   else if(s==='roll'){const p=hero.actT/hero.actDur;const v=hero.rollDist/hero.actDur*(1.5-p);hero.x+=Math.sin(hero.rollDir)*v*dt;hero.z+=Math.cos(hero.rollDir)*v*dt;hero.iframe=p>.04&&p<.72;if(p>=1)hero.state='idle';}
-  else if(s==='parry'){hero.parryOn=hero.actT>.03&&hero.actT<(C.shield?.34:.26);if(hero.actT>=hero.actDur)hero.state='idle';}
+  else if(s==='parry'){hero.parryOn=hero.actT>.03&&hero.actT<(C.shield?.34:.26);if(hero.actT>=hero.actDur)hero.state=(G.parryHeld&&C.shield)?'guard':'idle';}
+  else if(s==='guard'){if(!G.parryHeld||!C.shield)hero.state='idle';}
   else if(s==='cast'){if(!hero.castDone&&hero.actT>=hero.actDur*.45){hero.castDone=true;hero.hitDone=true;doSkill(hero.castIdx);}if(hero.actT>=hero.actDur)hero.state='idle';}
   else if(s==='drink'){if(mag>.12){hero.x+=inp.x*1.5*dt;hero.z+=inp.z*1.5*dt;}if(hero.actT>=hero.actDur)hero.state='idle';}
   else if(s==='stun'){if(hero.actT>=hero.actDur)hero.state='idle';}
@@ -2256,6 +2282,7 @@ function animRig(M,h,C,dt,local){const s=h.state,t=G.t,p=clamp(h.actT/h.actDur,0
   M.legL.rotation.x=-.3;M.legR.rotation.x=.3;M.kneeR.rotation.x=.4;}
  else if(s==='roll'){if(h.back){M.pivot.rotation.x=-.35;M.legL.rotation.x=.5;}else{M.pivot.rotation.x=p*Math.PI*2;M.pivot.position.y=.9-Math.sin(p*Math.PI)*.45;M.legL.rotation.x=-1.4;M.legR.rotation.x=-1.4;M.kneeL.rotation.x=1.6;M.kneeR.rotation.x=1.6;M.armL.rotation.x=-1.4;M.armR.rotation.x=-1.4;M.foreL.rotation.x=-1.4;M.foreR.rotation.x=-1.4;}}
  else if(s==='parry'){const q=h.actT<.3?1:1-(h.actT-.3)/.35;if(C.shield){M.armL.rotation.x=-1.5*q;M.armL.rotation.z=.4*q;M.foreL.rotation.x=-.6*q;}else{M.armR.rotation.x=-1.3*q;M.armR.rotation.z=1.1*q;M.foreR.rotation.x=-1*q;}M.torso.rotation.y=-.3*q;}
+ else if(s==='guard'){if(C.shield){M.armL.rotation.x=-1.5;M.armL.rotation.z=.4;M.foreL.rotation.x=-.6;}M.torso.rotation.y=-.3;}
  else if(s==='cast'&&C.yoyo){yoyoAnim(M,h,4,p,.45);}
  else if(s==='cast'&&C.dual&&!C.ranged){trail=bladeAnim(M,h,4,p,.5);}
  else if(s==='cast'){M.armR.rotation.x=-2.4*Math.sin(p*Math.PI);M.armL.rotation.x=-1.8*Math.sin(p*Math.PI);M.pivot.position.y=.9+Math.sin(p*Math.PI)*.15;}
@@ -2384,7 +2411,7 @@ function joyEnd(e){if(e.pointerId!==joy.id)return;const wasTap=!joy.live&&perfor
 addEventListener('pointerup',joyEnd);addEventListener('pointercancel',joyEnd);
 function btn(id,down,up){const el=$(id);el.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();audioStart();el.classList.add('pr');if(!blocked())down();});const u=e=>{el.classList.remove('pr');if(up)up();};el.addEventListener('pointerup',u);el.addEventListener('pointercancel',u);el.addEventListener('pointerleave',u);}
 btn('#bLight',()=>{G.lightHeld=true;lightAttack();},()=>G.lightHeld=false);
-btn('#bHeavy',heavyAttack);btn('#bRoll',dodge);btn('#bParry',parry);
+btn('#bHeavy',heavyAttack);btn('#bRoll',dodge);btn('#bParry',()=>{G.parryHeld=true;parry();},()=>G.parryHeld=false);
 for(let s=0;s<6;s++)btn('#bS'+(s+1),()=>useSkill(s));
 btn('#bFlask',drinkFlask);btn('#bPot',usePot);btn('#bInt',doInteract);
 btn('#bLock',()=>{if(hero.lock){hero.lock=null;toast('Lock-on off',700);}else{const n=nearest(28);if(n){hero.lock=n;sfx('ui');}else toast('No enemy nearby',800);}});
@@ -2393,8 +2420,8 @@ btn('#bMenu',()=>openMenu());
 $('#bChat').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();audioStart();if(G.mode==='game'&&!dlgOpen)openMenu('chat');});
 $('#bNet').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();audioStart();if(G.mode==='game'&&!dlgOpen)openMenu('online');});
 addEventListener('keydown',e=>{if(e.target&&/INPUT|TEXTAREA/.test(e.target.tagName))return;const k=e.key.toLowerCase();keys[k]=1;if(e.repeat)return;audioStart();if(k==='escape'||k==='m'){if(menuOpen)closeMenu();else if(G.mode==='game'&&!dlgOpen)openMenu();return;}if(blocked())return;
- if(k==='j'){G.lightHeld=true;lightAttack();}if(k==='k')heavyAttack();if(k===' '){e.preventDefault();dodge();}if(k==='l')parry();if(k>='1'&&k<='6')useSkill(+k-1);if(k==='q')drinkFlask();if(k==='r')usePot();if(k==='e'||k==='f')doInteract();if(k==='tab'){e.preventDefault();$('#bLock').dispatchEvent(new PointerEvent('pointerdown'));}});
-addEventListener('keyup',e=>{const k=e.key.toLowerCase();keys[k]=0;if(k==='j')G.lightHeld=false;});
+ if(k==='j'){G.lightHeld=true;lightAttack();}if(k==='k')heavyAttack();if(k===' '){e.preventDefault();dodge();}if(k==='l'){G.parryHeld=true;parry();}if(k>='1'&&k<='6')useSkill(+k-1);if(k==='q')drinkFlask();if(k==='r')usePot();if(k==='e'||k==='f')doInteract();if(k==='tab'){e.preventDefault();$('#bLock').dispatchEvent(new PointerEvent('pointerdown'));}});
+addEventListener('keyup',e=>{const k=e.key.toLowerCase();keys[k]=0;if(k==='j')G.lightHeld=false;if(k==='l')G.parryHeld=false;});
 
 /* ================= CAMERA ================= */
 const camT=new T.Vector3();
@@ -2478,7 +2505,7 @@ function renderMenu(){const st=G.st=stats(),C=C_();
    +`<div class="vit"><span class="vl">💧 SP</span><div class="fgmeter"><div class="bar sp" style="width:${pc(hero.sp,st.msp)}%"></div><span>${Math.floor(hero.sp)} / ${st.msp}</span></div></div>`
    +`<div class="vit"><span class="vl">✨ EXP</span><div class="fgmeter"><div class="bar xp" style="width:${pc(S.exp,xpN)}%"></div><span>${S.exp.toLocaleString()} / ${xpN.toLocaleString()}</span></div></div>`
    +`<div class="chips"><span class="chip">🟩 Stamina ${st.msta}</span><span class="chip">🩸 Flask ${S.flask}</span><span class="chip">💰 ${S.zeny.toLocaleString()} z</span></div></div>`;
-  const desc={str:'Melee attack power',agi:'Attack speed, crit, stamina',vit:'Max HP, defense, stamina',int:'Max SP, magic & skill power',dex:'Attack speed; Archer damage',luk:'Critical chance'};
+  const desc={str:'Melee attack power',agi:'Attack speed, crit, stamina, flee',vit:'Max HP, defense, stamina',int:'Max SP, magic & skill power',dex:'Attack speed; Archer damage',luk:'Critical chance'};
   const P=ptsLeft(),rcost=S.lv*300;
   h+=`<div class="card"><div class="ttl">Stat Points <span class="zen">${P.toLocaleString()}</span> <button data-a="streset" style="float:right" ${ptsSpent(S.st)?'':'disabled'}>↺ Respec · ${rcost.toLocaleString()}z</button></div><div class="chips">${STAT_JOB.map((v,i)=>`<span class="chip ${(S.job||0)===i?'on':(S.job||0)>i?'done':''}">${['1st','2nd','3rd','4th'][i]} Job · ${v}</span>`).join('')}</div><i class="ist">Cap <b style="color:#ffd76a">${statMax()}</b> as ${jobName()} · you gain <b>${STAT_PTS}</b> points per level · raising a stat costs more every 10 points · allocated points count <b>×${STAT_W}</b> in combat · speed-type gains soften past 99.</i><div class="igrid">`;
   for(const k of ['str','agi','vit','int','dex','luk']){const v=S.st[k],mx=v>=statMax();
@@ -2487,7 +2514,7 @@ function renderMenu(){const st=G.st=stats(),C=C_();
     +(d?`<i class="ist stg">next: ${d}</i>`:'')
     +`<div class="ia"><button data-a="stat" data-v="${k}" ${!mx&&P>=c1?'':'disabled'}>+1 · ${c1}p</button><button data-a="stat5" data-v="${k}" ${!mx&&n5>0&&P>=c5?'':'disabled'}>+${n5||5} · ${c5}p</button></div></div>`;}
   h+=`</div></div>${innHtml()}`;
-  const cb=[['⚔️','ATK',st.atk],['🛡️','DEF',`${st.def} (-${Math.round(100-10000/(100+st.def))}%)`],['⚡','Speed',`×${st.aspdM.toFixed(2)}`],['✦','Crit',`${Math.round(st.crit*100)}%`],['🩸','Lifesteal',`${(st.ls*100).toFixed(1)}%`],['🔮','Spell Siphon',`${(st.sls*100).toFixed(1)}%`],['🛡️','Dmg taken',`-${Math.round(st.red*100)}%`],['💰','Zeny',`×${st.zenyM.toFixed(2)}`],['🟩','Sta regen',`${Math.round(st.staR)}/s`]];
+  const cb=[['⚔️','ATK',st.atk],['🛡️','DEF',`${st.def} (-${Math.round(100-10000/(100+st.def))}%)`],['⚡','Speed',`×${st.aspdM.toFixed(2)}`],['✦','Crit',`${Math.round(st.crit*100)}%`],['💨','Flee',`${Math.round(st.flee*100)}%`],['🩸','Lifesteal',`${(st.ls*100).toFixed(1)}%`],['🔮','Spell Siphon',`${(st.sls*100).toFixed(1)}%`],['🛡️','Dmg taken',`-${Math.round(st.red*100)}%`],['💰','Zeny',`×${st.zenyM.toFixed(2)}`],['🟩','Sta regen',`${Math.round(st.staR)}/s`]];
   h+=`<div class="card"><div class="ttl">Combat</div><div class="cgrid">${cb.map(c=>`<div class="ctile"><span class="sl">${c[0]} ${c[1]}</span><span class="cv">${c[2]}</span></div>`).join('')}</div></div>`;
   h+=`<div class="card"><div class="ttl">Skill Bar</div><div class="sbar">${S.bar.map((i,n)=>`<div class="sslot ${i===null?'empty':''}"><span class="n">${n+1}</span>${i===null?'<span class="ghost">·</span>':`<span class="e">${C.sk[i].e}</span><span class="sn2">${C.sk[i].n}</span><span class="lvl">Lv${skLv(i)}</span>`}</div>`).join('')}</div><i class="ist">Skill points: ${S.skp} → Skills tab</i></div>`;}
  else if(G.tab==='skills'){h+=skillsHtml();}
@@ -2612,7 +2639,7 @@ function renderMenu(){const st=G.st=stats(),C=C_();
  else if(G.tab==='online')h+=onlineHtml();
  else if(G.tab==='lb')h+=lbHtml();
  else{h+=`<div class="card"><div class="ttl">Controls</div><b>Move:</b> tap the ground to walk there, or drag on the left half of the screen for a virtual stick. Tap a monster to lock on and fight it.<br>
-  <b>⚔️ LIGHT</b> fast attack (hold for combos) · <b>💢 HEAVY</b> slow, powerful, breaks guards and stances<br><b>🌀 DODGE</b> roll with invincibility frames (no stick = backstep)<br><b>🛡️ PARRY</b> press just as an enemy strikes → they get stunned and your next hit is a <b style="color:#ffd76a">CRITICAL riposte</b><br><b>1-4</b> skill bar (set it up in the Skills tab) · <b>🩸 FLASK</b> heals 45%, refills at a Site of Grace · <b>🧪</b> potions (max 5 each)<br>
+  <b>⚔️ LIGHT</b> fast attack (hold for combos) · <b>💢 HEAVY</b> slow, powerful, breaks guards and stances<br><b>🌀 DODGE</b> roll with invincibility frames (no stick = backstep)<br><b>🛡️ PARRY</b> press just as an enemy strikes (shield classes: keep holding to raise a guard — blocks frontal hits for stamina) → they get stunned and your next hit is a <b style="color:#ffd76a">CRITICAL riposte</b><br><b>1-4</b> skill bar (set it up in the Skills tab) · <b>🩸 FLASK</b> heals 45%, refills at a Site of Grace · <b>🧪</b> potions (max 5 each)<br>
   Red ground circles are <b>unblockable</b>: roll out. Enemies flash white right before they strike: that's your parry window.<br>Shielded enemies (🛡️) block frontal light attacks. Use heavy attacks or hit them from behind.<br>Dying drops your zeny where you fell. Pick it up again before dying twice.<br><i style="color:#a99cc0">Keyboard: WASD · J light · K heavy · Space dodge · L parry · 1-3 skills · Q flask · R potion · E interact · Tab lock · M menu</i></div>`;
   h+=`<div class="card"><div class="ttl">Graphics</div><div class="fbar">${['low','medium','high'].map(q=>`<button data-a="qual" data-v="${q}" class="${QUAL===q?'on':''}">${q[0].toUpperCase()+q.slice(1)}</button>`).join('')}</div><i style="color:#a99cc0;font-size:11px">Low: no shadows/bloom (old phones) · Medium: shadows · High: shadows + bloom + more particles. Takes effect on next area load.</i></div>`;
   h+=`<div class="card"><div class="ttl">Difficulty</div><div class="fbar">${DIFF.map((d,i)=>`<button data-a="diff" data-v="${i}" class="${(S.diff!=null?S.diff:2)===i?'on':''}">${d.n}</button>`).join('')}</div><i style="color:#a99cc0;font-size:11px">${diff().d}.</i><br>${FB.uid?'':`<button class="mbtn" data-a="rename">✏️ Rename hero (${heroName()})</button>`}</div>`;
@@ -2891,7 +2918,7 @@ const FB={avail:false,probed:false,ready:false,user:null,uid:null,name:'',db:nul
 const NET={on:false,host:false,ch:-1,peers:{},subs:[],mid:0,lastP:'',pT:0,pK:0,mT:0,hbT:0,chkT:0,cleanT:0,bossT:0,infoDirty:true,lastMobs:'',diff:null,hostUid:null,base:null,me:null,duel:null,duelReq:null};
 const isPuppet=()=>NET.on&&!NET.host;
 const sNow=()=>Date.now()+FB.off;
-const PST=['idle','move','light','heavy','roll','parry','cast','drink','stun','dead'];
+const PST=['idle','move','light','heavy','roll','parry','cast','drink','stun','dead','guard'];
 const PDUR={light:.5,heavy:.95,roll:.5,parry:.65,cast:.55,drink:.95,stun:.3};
 const UNAME_RE=/^[A-Za-z0-9_]{3,12}$/;
 const unameEmail=u=>u.toLowerCase()+'@players.shadowoath.game';
