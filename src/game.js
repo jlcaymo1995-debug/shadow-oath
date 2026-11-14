@@ -82,6 +82,7 @@ const POT_MAX=5;
 const ORE={ori:{n:'Oridecon',e:'🔷',d:'Refines weapons'},elu:{n:'Elunium',e:'🔶',d:'Refines armor, helms, shields, rings'}};
 const REF_RATE=[1,1,1,1,.9,.75,.6,.45,.35,.28,.22,.18,.15,.12,.1,.08,.065,.05,.04,.03];
 // Elden Ring style: 1 stat point per level, each stat caps at 99, 6 stats x 99 = level 594
+const BAG_MAX=150;
 const REF_MAX=20,LV_MAX=594,PROT_PRICE=6000,STAT_MAX=99,STAT_JOB=[99,110,130,150],STAT_W=3.4,EXP_RATE=.7;
 
 /* ================= MONSTER POOL ================= */
@@ -1392,12 +1393,19 @@ const C_=()=>CLASSES[S.cls];
 const partnerKey=()=>S.hero==='L'?'C':'L';
 const fmt=s=>s.replace(/\{H\}/g,heroName()).replace(/\{P\}/g,partnerName()).replace(/\{M\}/g,momOf(S.hero)).replace(/\{PM\}/g,momOf(partnerKey()));
 function iAtk(it){return Math.round(WATK[it.tier]*RMUL[it.rar]*(1+.1*it.ref)+it.ref*3);}
-function iDef(it){if(it.slot==='r')return 0;const T0={a:ADEF,h:HDEF,s:SDEF,l:LHDEF,f:FDEF}[it.slot];if(!T0)return 0;const b=T0[it.tier];return Math.round(b*RMUL[it.rar]*(1+.1*it.ref)+it.ref);}
+function iDef(it){if(it.slot==='r')return 0;const T0={a:ADEF,h:HDEF,s:SDEF,l:LHDEF,f:FDEF}[it.slot];if(!T0)return 0;const b=T0[Math.min(it.tier,T0.length-1)];return Math.round(b*RMUL[it.rar]*(1+.1*it.ref)+it.ref);}
 function iHp(it){return it.slot==='a'?Math.round(AHP[it.tier]*RMUL[it.rar]*(1+.08*it.ref)):0;}
 function afVal(it){if(!it.af)return 0;return AFFIX[it.af.k].v[it.rar]*(1+it.ref*.06);}
+/* What an incoming item would actually replace. If any compatible slot is free
+   it is a strict gain; otherwise it displaces the weakest occupant. Reading
+   S.eq[it.slot] only ever looked at the FIRST accessory slot, so a ring was
+   judged against r even when r2 sat empty. */
+function curFor(it){const ks=slotsFor(it);if(!ks.length)return null;
+ if(ks.some(k=>!S.eq[k]))return null;
+ let w=null;for(const k of ks){const o=itemById(S.eq[k]);if(o&&(!w||iScore(o)<iScore(w)))w=o;}return w;}
 function iScore(it){if(it.slot==='r')return afVal(it)*(it.af&&(it.af.k==='ls'||it.af.k==='sls')?3:1)+it.rar*2;return it.slot==='w'?iAtk(it)*(1+it.rar*.05)+(it.af?4:0):iDef(it)*3+iHp(it)*.3;}
 function iPrice(it){return Math.round((it.tier+1)*(it.tier+1)*25*[1,2.5,6,15][it.rar]*(1+it.ref*.3));}
-function iName(it){const b=it.slot==='w'?WN[C_().wt][it.tier]:it.slot==='a'?AN[it.tier]:it.slot==='h'?HN[it.tier]:it.slot==='s'?SN[it.tier]:it.slot==='l'?LHN[it.tier]:it.slot==='f'?FN[it.tier]:(it.af?AFFIX[it.af.k].n+' '+RNm[it.tier]:RNm[it.tier]);return b+(it.ref?' +'+it.ref:'');}
+function iName(it){const tv=a=>a[Math.min(it.tier,a.length-1)];const b=it.slot==='w'?tv(WN[C_().wt]):it.slot==='a'?tv(AN):it.slot==='h'?tv(HN):it.slot==='s'?tv(SN):it.slot==='l'?tv(LHN):it.slot==='f'?tv(FN):(it.af?AFFIX[it.af.k].n+' '+tv(RNm):tv(RNm));return b+(it.ref?' +'+it.ref:'');}
 function iStat(it){let s='';if(it.slot==='w'){s='ATK +'+iAtk(it);if(it.rar===2)s+=' · Crit +4%';if(it.rar===3)s+=' · Crit +8%';}else if(it.slot==='r'){s='';}else{s='DEF +'+iDef(it);if(it.slot==='a')s+=' · HP +'+iHp(it);if(it.rar===3)s+=' · Dmg taken -6%';}
  if(it.af){const A=AFFIX[it.af.k];s+=(s?' · ':'')+`<span class="af">${A.n} +${afVal(it).toFixed(1)}${A.u} ${A.d}</span>`;}return s;}
 const iHtml=it=>`<span class="rt r${it.rar}">${RNAME[it.rar]}</span><b class="r${it.rar}">${iName(it)}</b>`;
@@ -1655,8 +1663,8 @@ function spawnDrop(e,x,z){const col=RCOL[e.rar];const g=grp(x,gY(x,z),z);const h
  const rg=mesh(RING(.55,.75),basic(col,{transparent:true,opacity:.6,side:T.DoubleSide,depthWrite:false}),0,.05,0);rg.rotation.x=-Math.PI/2;rg.castShadow=false;g.add(rg);world.add(g);
  G.drops.push({e,x,z,g,gem,t:0,fly:0});if(e.rar===3){bigText('S-TIER DROP!','#ff2a2a',1800);G.shake=.2;sfx('stier');}else if(e.rar===2)sfx('gold');}
 function collect(dr){const it=newItem(dr.e.slot,dr.e.tier,dr.e.rar,0,dr.e.af);
- if(S.items.length>=150&&it.rar===0){S.zeny+=iPrice(it);log(`<span class="r0">${iName(it)}</span> auto-sold (bag full)`);return;}
- S.items.push(it);const cur=S.eq[it.slot]?itemById(S.eq[it.slot]):null;let eq='';
+ if(S.items.length>=BAG_MAX&&it.rar===0){S.zeny+=iPrice(it);log(`<span class="r0">${iName(it)}</span> auto-sold (bag full)`);return;}
+ S.items.push(it);const cur=curFor(it);let eq='';
  if(S.autoEq&&(!cur||iScore(it)>iScore(cur))&&(it.slot!=='s'||C_().shield)){S.eq[freeSlotFor(it)||it.slot]=it.id;eq=' — EQUIPPED!';G.st=stats();rebuildHero();fxRing(hero.x,hero.z,2.5,RCOL[it.rar],.6);}
  log(`${SLOTI[it.slot]} ${iHtml(it)}${eq}`);txt(hero.x,hero.y+3,hero.z,RNAME[it.rar]+' '+iName(it),RCSS[it.rar],it.rar>=2);sfx('pickup');}
 
@@ -2471,10 +2479,10 @@ function renderMenu(){const st=G.st=stats(),C=C_();
    +`</div><div class="row" style="margin-top:7px"><span class="nm">Auto-equip better drops</span><button data-a="autoeq">${S.autoEq?'ON ✓':'OFF'}</button></div></div>`;
   const F=G.bagF;h+=`<div class="fbar">${[['all','All'],['w','Weapons'],['a','Armor'],['h','Helms'],['l','Masks'],['f','Boots'],['s','Shields'],['r','Rings']].filter(x=>x[0]!=='s'||C.shield).map(x=>`<button data-a="bagf" data-v="${x[0]}" class="${F===x[0]?'on':''}">${x[1]}</button>`).join('')}</div>`;
   const list=S.items.filter(i=>!Object.values(S.eq).includes(i.id)&&(F==='all'||i.slot===F)&&(i.slot!=='s'||C.shield)).sort((a,b)=>iScore(b)-iScore(a));
-  h+=`<div class="card"><div class="ttl">Bag (${S.items.length}/80)</div>`;
+  h+=`<div class="card"><div class="ttl">Bag (${S.items.length}/${BAG_MAX})</div>`;
   if(!list.length)h+='<i style="color:#a99cc0">Kill monsters to find gear. Drops glow by tier: white Normal, silver, gold, and red S-Tier. Rings carry Lifesteal, Spell Siphon and other affixes.</i>';
   else{h+='<div class="igrid">';
-   for(const it of list){const cur=S.eq[it.slot]?itemById(S.eq[it.slot]):null;const diff=cur?Math.round(iScore(it)-iScore(cur)):1;
+   for(const it of list){const cur=curFor(it);const diff=cur?Math.round(iScore(it)-iScore(cur)):1;
     h+=`<div class="icard q${it.rar}"><span class="inm">${SLOTI[it.slot]} ${iHtml(it)} <span class="${diff>0?'up':'dn'}">${diff>0?'▲':'▼'}</span></span><i class="ist">${iStat(it)}</i><div class="ia"><button data-a="equip" data-v="${it.id}">Equip</button><button data-a="sell" data-v="${it.id}">${iPrice(it)}z</button></div></div>`;}
    h+='</div>';}
   h+=`</div><button class="mbtn" data-a="sellr" data-v="0">Sell all Normal</button><button class="mbtn" data-a="sellr" data-v="1">Sell all Silver</button>`;
@@ -2487,13 +2495,13 @@ function renderMenu(){const st=G.st=stats(),C=C_();
   let list=S.items.slice().sort((a,b)=>(eqIds.includes(b.id)-eqIds.includes(a.id))||(b.ref-a.ref)||iScore(b)-iScore(a));
   if(F==='eq')list=list.filter(i=>eqIds.includes(i.id)); else if(F!=='all')list=list.filter(i=>i.slot===F);
   let sel=G.fgSel?itemById(G.fgSel):null;
-  if(!sel||!S.items.includes(sel)){sel=list[0]||S.items[0]||null;G.fgSel=sel?sel.id:null;}
+  if(!sel||!S.items.includes(sel)||!list.includes(sel)){sel=list[0]||null;G.fgSel=sel?sel.id:null;}
   h+=`<div class="card"><div class="ttl">⚒️ Forge — refine up to +${REF_MAX}${smith?' · <span style="color:#7f7">Blacksmith bonus</span>':''}</div>`
-   +`<div class="fbar">${[['all','All'],['eq','Equipped'],['w','Weapons'],['a','Armor'],['h','Helms'],['l','Masks'],['f','Boots'],['s','Shields'],['r','Rings']].map(x=>`<button data-a="fgf" data-v="${x[0]}" class="${F===x[0]?'on':''}">${x[1]}</button>`).join('')}</div>`
+   +`<div class="fbar">${[['all','All'],['eq','Equipped'],['w','Weapons'],['a','Armor'],['h','Helms'],['l','Masks'],['f','Boots'],['s','Shields'],['r','Rings']].filter(x=>x[0]!=='s'||C.shield).map(x=>`<button data-a="fgf" data-v="${x[0]}" class="${F===x[0]?'on':''}">${x[1]}</button>`).join('')}</div>`
    +`<div class="fgpick">${list.slice(0,60).map(it=>`<div class="fgtile q${it.rar}${sel&&it.id===sel.id?' on':''}" data-a="fgsel" data-v="${it.id}"><span class="ic">${SLOTI[it.slot]}</span><span class="lv">+${it.ref}</span>${eqIds.includes(it.id)?'<span class="eqb">E</span>':''}</div>`).join('')||'<i class="ist">No gear to refine yet.</i>'}</div></div>`;
   if(sel){
    const rc=refineCost(sel),rate=refineRate(sel),pct=Math.round(rate*100),maxed=sel.ref>=REF_MAX;
-   const prot=S.useProt&&S.prot>0, band=sel.ref>=10?(prot?'risky':'deadly'):sel.ref>=4?'risky':'safe';
+   const prot=S.useProt&&S.prot>0, band=sel.ref>=10?(prot?'risky':'deadly'):sel.ref>=5?'risky':'safe';
    const payZ=S.zeny>=rc.z, payO=S.ore[rc.ore]>=rc.n, canPay=payZ&&payO;
    const nx=Object.assign({},sel,{ref:sel.ref+1}),dl=[];
    if(sel.slot==='w')dl.push(['ATK',iAtk(sel),iAtk(nx)]);
@@ -2546,7 +2554,7 @@ function renderMenu(){const st=G.st=stats(),C=C_();
   for(const sl of ['w','a','h','l','f','s','r']){
    if(sl==='s'&&!C_().shield)continue;
    const proto={id:-1,slot:sl,tier:gt,rar:0,ref:0,af:null};
-   const pr=Math.round(iPrice(proto)*2.2),n=shopN(pr,80-S.items.length);
+   const pr=Math.round(iPrice(proto)*2.2),n=shopN(pr,BAG_MAX-S.items.length);
    const cur=S.eq[sl]?itemById(S.eq[sl]):null,d=cur?Math.round(iScore(proto)-iScore(cur)):1;
    h+=`<div class="icard q0"><span class="inm">${SLOTI[sl]} ${iName(proto)} <span class="${d>0?'up':'dn'}">${d>0?'▲':'▼'}</span></span>`
     +`<i class="ist">${SLOTN[sl]}${iStat(proto)?' · '+iStat(proto):''}</i>`
@@ -2561,14 +2569,14 @@ function renderMenu(){const st=G.st=stats(),C=C_();
     +`<div class="ia"><button class="mbtn" data-a="box" ${S.zeny>=bp?'':'disabled'}>Open for ${bp.toLocaleString()}z</button></div></div>`;}
   // Selling belongs at the merchant, not only in the bag.
   const spare=S.items.filter(i=>!Object.values(S.eq).includes(i.id)).sort((a,b)=>iPrice(a)-iPrice(b));
-  h+=`<div class="card"><div class="ttl">\U0001F4B1 Sell</div>`
+  h+=`<div class="card"><div class="ttl">💱 Sell</div>`
    +`<div class="fbar"><button data-a="sellr" data-v="0">Sell all Normal</button><button data-a="sellr" data-v="1">Sell all Silver</button><span class="ist" style="align-self:center">unrefined only</span>${(()=>{let t=0;for(const k in S.loot)t+=S.loot[k].c*S.loot[k].p;return `<button data-a="sellloot" ${t?'':'disabled'}>Sell all loot · ${t.toLocaleString()}z</button>`;})()}</div>`
    +(spare.length?`<div class="igrid">${spare.slice(0,40).map(it=>`<div class="icard q${it.rar}"><span class="inm">${SLOTI[it.slot]} ${iHtml(it)}</span><i class="ist">${iStat(it)}</i><div class="ia"><button data-a="sell" data-v="${it.id}">Sell · ${iPrice(it).toLocaleString()}z</button></div></div>`).join('')}</div>`
      :'<i class="ist">Nothing spare to sell — everything you own is equipped.</i>')
    +`</div>`;
   if(S.bb&&S.bb.length){
    h+=`<div class="card"><div class="ttl">↩️ Buyback</div><i class="ist">The merchant still has your last ${S.bb.length} sale${S.bb.length>1?'s':''}, at exactly the price you were paid.</i>`
-    +`<div class="igrid">${S.bb.map((e,i)=>`<div class="icard q${e.it.rar}"><span class="inm">${SLOTI[e.it.slot]} ${iHtml(e.it)}</span><i class="ist">${iStat(e.it)}</i><div class="ia"><button data-a="buyback" data-v="${i}" ${S.zeny>=e.p&&S.items.length<80?'':'disabled'}>Buy back · ${e.p.toLocaleString()}z</button></div></div>`).join('')}</div></div>`;}
+    +`<div class="igrid">${S.bb.map((e,i)=>`<div class="icard q${e.it.rar}"><span class="inm">${SLOTI[e.it.slot]} ${iHtml(e.it)}</span><i class="ist">${iStat(e.it)}</i><div class="ia"><button data-a="buyback" data-v="${i}" ${S.zeny>=e.p&&S.items.length<BAG_MAX?'':'disabled'}>Buy back · ${e.p.toLocaleString()}z</button></div></div>`).join('')}</div></div>`;}
   }
  else if(G.tab==='map')h+=mapHtml();
  else if(G.tab==='chat')h+=chatHtml();
@@ -2612,9 +2620,9 @@ function fgResult(R,it){
  if(R.r==='up'){toast(`✨ <b style="color:#7f7">REFINE SUCCESS!</b><br>${iHtml(it)}`,1800);sfx('forge');
   if(it.ref>=15){bigText('+'+it.ref+'!','#ffd76a',1500);sfx('stier');}
   if(FB.uid&&it.ref>=15)chatSys(`⚒️ ${FB.name} refined ${iName(it)}!`);}
- else if(R.r==='save'){toast(`\U0001F4A5 <b style="color:#f77">Refine failed...</b><br>\U0001F6E1️ Protection Scroll saved it · dropped to +${R.to}`,2200);sfx('deny');}
- else if(R.r==='broke'){toast(`\U0001F494 <b style="color:#ff3030">THE ITEM BROKE!</b><br>${R.nm} is gone...`,2600);bigText('BROKEN','#c41e1e',1600);sfx('deny');G.shake=.3;}
- else if(R.r==='down'){toast(`\U0001F4A5 <b style="color:#f77">Refine failed...</b>${R.from!==R.to?'<br>Dropped to +'+R.to:''}`,1800);sfx('deny');}
+ else if(R.r==='save'){toast(`💥 <b style="color:#f77">Refine failed...</b><br>🛡️ Protection Scroll saved it · dropped to +${R.to}`,2200);sfx('deny');}
+ else if(R.r==='broke'){toast(`💔 <b style="color:#ff3030">THE ITEM BROKE!</b><br>${R.nm} is gone...`,2600);bigText('BROKEN','#c41e1e',1600);sfx('deny');G.shake=.3;}
+ else if(R.r==='down'){toast(`💥 <b style="color:#f77">Refine failed...</b>${R.from!==R.to?'<br>Dropped to +'+R.to:''}`,1800);sfx('deny');}
 }
 /* How many to buy on one click: the shop's quantity selector, clamped by what you
    can afford and by whatever cap applies (potion carry limit, bag space). */
@@ -2653,19 +2661,19 @@ function menuAct(a,v,b){let reb=false;sfx('ui');
   case 'protuse':S.useProt=!S.useProt;if(S.useProt&&!(S.prot>0))toast('🛡️ You have no Protection Scrolls yet.<br>Buy some here or in the Shop.',2200);break;
   case 'buyprot':{const n=shopN(PROT_PRICE,null);if(n){S.zeny-=PROT_PRICE*n;S.prot=(S.prot||0)+n;S.useProt=true;sfx('forge');toast(`🛡️ Protection Scroll ×${n} (now ${S.prot})`,1300);}break;}
   case 'buyback':{S.bb=S.bb||[];const e=S.bb[+v];if(!e)break;
-   if(S.items.length>=80){toast('Your bag is full',1200);break;}
+   if(S.items.length>=BAG_MAX){toast('Your bag is full',1200);break;}
    if(S.zeny<e.p){toast('Not enough zeny',1200);break;}
    S.zeny-=e.p;S.items.push(e.it);S.bb.splice(+v,1);sfx('ui');toast('Bought back '+iHtml(e.it),1500);reb=true;break;}
   case 'buyore':{const p=oreP(v),n=shopN(p,null);if(n){S.zeny-=p*n;S.ore[v]+=n;toast(`${ORE[v].e} ${ORE[v].n} ×${n}`,1100);}break;}
   case 'buygear':{const gt=Math.max(0,chTier(S.unlocked)-1);const p=Math.round(iPrice({tier:gt,rar:0,ref:0})*2.2);
-   const n=shopN(p,80-S.items.length);
+   const n=shopN(p,BAG_MAX-S.items.length);
    if(n){S.zeny-=p*n;let last=null;for(let i=0;i<n;i++){last=newItem(v,gt,0);S.items.push(last);}toast('Bought '+iName(last)+(n>1?` ×${n}`:''),1200);reb=true;}
-   else if(S.items.length>=80)toast('Your bag is full',1200);break;}
+   else if(S.items.length>=BAG_MAX)toast('Your bag is full',1200);break;}
   case 'box':{const p=boxP();if(S.zeny>=p){S.zeny-=p;const r=Math.random();const e=rollEquip(chTier(S.unlocked),false);e.tier=chTier(S.unlocked);e.rar=r<.15?3:r<.5?2:1;e.af=rollAffix(e.slot,e.rar);collect({e});toast(`🎁 You got ${iHtml(S.items[S.items.length-1])}!`,2200);if(e.rar===3){bigText('S-TIER!','#ff2a2a',1600);sfx('stier');}reb=true;}break;}
   case 'refine':{const it=itemById(+v);if(!it)break;const rc=refineCost(it);if(it.ref>=REF_MAX||S.zeny<rc.z||S.ore[rc.ore]<rc.n)break;
    if(it.ref>=10&&!(S.useProt&&S.prot>0)&&!G.brkOk){G.brkOk=1;ask(`⚠️ <b>${iName(it)}</b> → +${it.ref+1}<br>Success ${Math.round(refineRate(it)*100)}%. If it fails, the item <b style="color:#ff3030">BREAKS and is gone forever</b>.<br><small>Turn on 🛡️ Protection Scrolls to keep it safe.</small>`,['Refine anyway','Cancel']).then(r=>{if(r===0){menuAct('refine',v);}G.brkOk=0;});return;}
    G.brkOk=0;const R=doRefine(it);fgResult(R,it);if(R.r==='broke')G.fgSel=null;
-   if(Object.values(S.eq).includes(it.id))reb=true;break;}
+   if(R.r==='broke'||Object.values(S.eq).includes(it.id))reb=true;break;}
   case 'refineto':{const it=itemById(+G.fgSel);if(!it)break;
    const tgt=Math.min(REF_MAX,+v||it.ref+1);let up=0,down=0,tries=0,broke=false,stop='';
    while(it.ref<tgt&&tries<60){
@@ -3119,8 +3127,8 @@ function netBg(dt){G.t+=dt;if(isPuppet())puppetMobs(dt);else updateMobs(dt,G.st)
 /* ================= DUNGEONS + ABYSSAL GEAR ================= */
 // tier 6 = Abyssal gear: only drops in dungeons
 for(const k in WN)if(WN[k].length===6)WN[k].push(WN[k][5].replace(/^\S+/,'Abyssal'));
-[AN,HN,SN,RNm].forEach(a=>{if(a.length===6)a.push(a[5].replace(/^\S+/,'Abyssal'));});
-if(WATK.length===6){WATK.push(205);ADEF.push(52);AHP.push(540);HDEF.push(26);SDEF.push(40);}
+[AN,HN,SN,RNm,LHN,FN].forEach(a=>{if(a.length===6)a.push(a[5].replace(/^\S+/,'Abyssal'));});
+if(WATK.length===6){WATK.push(205);ADEF.push(52);AHP.push(540);HDEF.push(26);SDEF.push(40);LHDEF.push(19);FDEF.push(23);}
 
 const DUNGEONS=[
  {k:'crypt',n:'Sunken Crypt',e:'⚰️',req:4,w:5,boss:'hydra',col:'#3fd0b0',tier:3,d:'A flooded tomb beneath the dunes. Something with many heads sleeps in the water.'},
@@ -3790,7 +3798,7 @@ function trRender(){const el=$('#trade');if(!el||!TR)return;const keep={};['.trc
 function trRender0(el){const eqIds=new Set(Object.values(S.eq).filter(Boolean));
  const row=(it,act)=>`<div class="row" ${act?`data-t="${act}" data-v="${it.id}" style="cursor:pointer"`:''}><span class="nm">${SLOTI[it.slot]} ${iHtml(it)}<i>${iStat(it).replace(/<[^>]+>/g,'')}</i></span>${act==='rem'?'<b style="color:#ff7a7a">✕</b>':''}</div>`;
  const mine=trMyItems(),bagAll=S.items.filter(it=>!eqIds.has(it.id)&&!TR.my.ids.includes(it.id)).sort((a,b)=>b.rar-a.rar||b.tier-a.tier||(b.ref||0)-(a.ref||0));const fl=TR.f||'';const bag=fl?bagAll.filter(it=>it.slot===fl):bagAll;
- const flt=`<div class="trflt">${[['','All'],['w',SLOTI.w],['a',SLOTI.a],['h',SLOTI.h],['s',SLOTI.s],['r',SLOTI.r]].map(([k,l])=>{const n=k?bagAll.filter(i=>i.slot===k).length:bagAll.length;return n||!k?`<button data-t="flt" data-v="${k}" class="${fl===k?'on':''}">${l} ${n}</button>`:'';}).join('')}</div>`;
+ const flt=`<div class="trflt">${[['','All'],['w',SLOTI.w],['a',SLOTI.a],['h',SLOTI.h],['l',SLOTI.l],['f',SLOTI.f],['s',SLOTI.s],['r',SLOTI.r]].map(([k,l])=>{const n=k?bagAll.filter(i=>i.slot===k).length:bagAll.length;return n||!k?`<button data-t="flt" data-v="${k}" class="${fl===k?'on':''}">${l} ${n}</button>`:'';}).join('')}</div>`;
  const both=TR.myLock&&TR.theirLock;
  el.innerHTML=`<div class="trp"><div class="ttl" style="text-align:center;font-size:17px">🤝 Trade with <b style="color:#8fe3b0">${esc(TR.n)}</b></div>
  <div class="trc"><div class="trcol ${TR.myLock?'lk':''}"><div class="ttl">You offer ${TR.myLock?'🔒':''} <small style="color:#a99cc0">${mine.length}/${TR_MAX}</small></div><div class="trof">${mine.map(it=>row(it,TR.myLock?'':'rem')).join('')||'<i class="tri">Tap items in your bag to add them</i>'}</div>
@@ -3877,15 +3885,17 @@ function panelRender(scene,cam,place){
  PR.setPixelRatio(Math.min(window.devicePixelRatio||1,Q().dpr));PR.setSize(w,h,false);
  cam.aspect=w/h;place(cam);cam.updateProjectionMatrix();PR.render(scene,cam);
 }
+function disposePanel(o){o.traverse(n=>{const m=n.material;if(!m)return;
+ (Array.isArray(m)?m:[m]).forEach(x=>{if(x&&x.dispose)x.dispose();});});}
 function dollRender(){
  if(!dollM)return;
  dollM.root.rotation.y=panelSpin;
  panelRender(dscene,dcam,c=>{c.position.set(0,1.62,4.4);c.lookAt(0,.95,0);});
 }
 function dollBuild(){
- if(!S)return;const sig=JSON.stringify(S.eq)+'|'+(S.job||0)+'|'+S.cls+'|'+S.hero;
+ if(!S)return;const sig=EQSLOTS.map(k=>{const o=S.eq[k]?itemById(S.eq[k]):null;return o?k+o.id+':'+o.ref+':'+o.rar+':'+o.tier:k+'-';}).join('|')+'|'+(S.job||0)+'|'+S.cls+'|'+S.hero;
  if(sig===dollSig&&dollM)return;dollSig=sig;
- if(dollM)dscene.remove(dollM.root);
+ if(dollM){dscene.remove(dollM.root);disposePanel(dollM.root);}
  dollM=buildHero(S.hero,S.cls,eqVisFromSave(),{cust:S.cust,job:S.job||0});dscene.add(dollM.root);
 }
 function dollWire(){
@@ -3924,7 +3934,7 @@ function buildItemModel(it){
 function fgBuild(it){
  const sig=it?it.id+'|'+it.ref+'|'+it.rar+'|'+it.tier+'|'+it.slot:'';
  if(sig===fgSig)return;fgSig=sig;
- if(fgM){fscene.remove(fgM);fgM=null;}
+ if(fgM){fscene.remove(fgM);disposePanel(fgM);fgM=null;}
  if(it){fgM=buildItemModel(it);fscene.add(fgM);}
 }
 const _fb=new T.Box3(),_fs=new T.Vector3(),_fc=new T.Vector3();
