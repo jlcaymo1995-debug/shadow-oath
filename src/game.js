@@ -2439,12 +2439,24 @@ function renderMenu(){const st=G.st=stats(),C=C_();
  const tabs=[['status','📊 Status'],['skills','🌟 Skills'+(S.skp?' ('+S.skp+')':'')],['bag','🎒 Equipment'],['forge','⚒️ Forge'],['shop','🏪 Shop'],['map','🗺️ World Map']].concat(FB.avail?[['online','🌐 Online'+(NET.on?' ('+(Object.values(NET.peers).filter(livePeer).length+1)+')':'')],['chat','💬 Chat'+(FB.chatUnread?' ('+FB.chatUnread+')':'')],['lb','🏆 Leaderboard']]:[]).concat([['sys','⚙️ Settings']]);
  $('#mSide').innerHTML=tabs.map(t=>`<button data-a="tab" data-v="${t[0]}" class="${G.tab===t[0]?'on':''}">${t[1]}</button>`).join('')+'<button class="cls" data-a="close">✕ Close</button>';
  let h='';
- if(G.tab==='status'){h+=`<div class="card"><div class="ttl">${facOf(S)?`<span style="color:${facOf(S).c}">${facOf(S).e} ${facOf(S).n}</span> · `:''}${heroName()} · ${C.ic} ${jobName()} · Lv ${S.lv}${S.ngp?' · NG+'+S.ngp:''}</div>EXP ${S.exp.toLocaleString()} / ${need(S.lv).toLocaleString()} · <span class="zen">💰 ${S.zeny.toLocaleString()} z</span><br>❤️ ${Math.ceil(hero.hp)}/${st.mhp} · 💧 ${Math.floor(hero.sp)}/${st.msp} · 🟩 Stamina ${st.msta} · 🩸 Flask ${S.flask} charges</div>`;
+ if(G.tab==='status'){
+  // Landing tab. It previously had no visual state at all — HP/SP/EXP were plain
+  // text with separators — in a game whose HUD already shows four bars.
+  const f=facOf(S),xpN=need(S.lv),pc=(a,b)=>Math.max(0,Math.min(100,b?a/b*100:0));
+  h+=`<div class="card"><div class="ttl">${f?`<span style="color:${f.c}">${f.e} ${f.n}</span> · `:''}${heroName()} · ${C.ic} ${jobName()} · Lv ${S.lv}${S.ngp?' · NG+'+S.ngp:''}</div>`
+   +`<div class="vit"><span class="vl">❤️ HP</span><div class="fgmeter"><div class="bar hp" style="width:${pc(hero.hp,st.mhp)}%"></div><span>${Math.ceil(hero.hp)} / ${st.mhp}</span></div></div>`
+   +`<div class="vit"><span class="vl">💧 SP</span><div class="fgmeter"><div class="bar sp" style="width:${pc(hero.sp,st.msp)}%"></div><span>${Math.floor(hero.sp)} / ${st.msp}</span></div></div>`
+   +`<div class="vit"><span class="vl">✨ EXP</span><div class="fgmeter"><div class="bar xp" style="width:${pc(S.exp,xpN)}%"></div><span>${S.exp.toLocaleString()} / ${xpN.toLocaleString()}</span></div></div>`
+   +`<div class="chips"><span class="chip">🟩 Stamina ${st.msta}</span><span class="chip">🩸 Flask ${S.flask}</span><span class="chip">💰 ${S.zeny.toLocaleString()} z</span></div></div>`;
   const desc={str:'Melee attack power',agi:'Attack speed, crit, stamina',vit:'Max HP, defense, stamina',int:'Max SP, magic & skill power',dex:'Attack speed; Archer damage',luk:'Critical chance'};
-  h+=`<div class="card"><div class="ttl">Stat Points: <span style="color:#fff;font-size:17px">${S.pts}</span></div><small style="color:#c9b6e8">Max per stat: <b style="color:#ffd76a">${statMax()}</b> as ${jobName()}${(S.job||0)<3?' · next job raises it to <b>'+STAT_JOB[(S.job||0)+1]+'</b>':''}</small>`;
-  for(const k of ['str','agi','vit','int','dex','luk'])h+=`<div class="row"><span class="sn">${k.toUpperCase()}</span><span class="sv">${S.st[k]}${S.st[k]>=statMax()?'<small style="color:#ffd76a"> MAX</small>':''}</span><span class="nm"><i>${desc[k]}</i></span><button data-a="stat" data-v="${k}" ${S.pts&&S.st[k]<statMax()?'':'disabled'}>+1</button><button data-a="stat5" data-v="${k}" ${S.pts>=1&&S.st[k]<statMax()?'':'disabled'}>+5</button></div>`;
-  h+=`</div>${innHtml()}<div class="card"><div class="ttl">Combat</div><div class="grid2"><span>⚔️ ATK ${st.atk}</span><span>🛡️ DEF ${st.def} (-${Math.round(100-10000/(100+st.def))}%)</span><span>⚡ Speed x${st.aspdM.toFixed(2)}</span><span>✦ Crit ${Math.round(st.crit*100)}%</span><span>🩸 Lifesteal ${(st.ls*100).toFixed(1)}%</span><span>🔮 Spell Siphon ${(st.sls*100).toFixed(1)}%</span><span>🛡️ Dmg taken -${Math.round(st.red*100)}%</span><span>💰 Zeny x${st.zenyM.toFixed(2)}</span><span>🟩 Sta regen ${Math.round(st.staR)}/s</span></div></div>`;
-  h+=`<div class="card"><div class="ttl">Skill Bar</div>${S.bar.map((i,s)=>`<b>${s+1}:</b> ${i===null?'<i style="color:#a99cc0">empty</i>':C.sk[i].e+' '+C.sk[i].n+' Lv'+skLv(i)}`).join(' &nbsp;·&nbsp; ')}<br><i style="color:#a99cc0">Skill points: ${S.skp} → Skills tab</i></div>`;}
+  h+=`<div class="card"><div class="ttl">Stat Points <span class="zen">${S.pts}</span></div><i class="ist">Max per stat: <b style="color:#ffd76a">${statMax()}</b> as ${jobName()}${(S.job||0)<3?' · next job raises it to <b>'+STAT_JOB[(S.job||0)+1]+'</b>':''}</i><div class="igrid">`;
+  for(const k of ['str','agi','vit','int','dex','luk']){const mx=S.st[k]>=statMax();
+   h+=`<div class="icard ${mx?'q2':'q0'}"><span class="sl">${k.toUpperCase()}${mx?' · MAX':''}</span><span class="stv">${S.st[k]}</span><i class="ist">${desc[k]}</i>`
+    +`<div class="ia"><button data-a="stat" data-v="${k}" ${S.pts&&!mx?'':'disabled'}>+1</button><button data-a="stat5" data-v="${k}" ${S.pts>=1&&!mx?'':'disabled'}>+5</button></div></div>`;}
+  h+=`</div></div>${innHtml()}`;
+  const cb=[['⚔️','ATK',st.atk],['🛡️','DEF',`${st.def} (-${Math.round(100-10000/(100+st.def))}%)`],['⚡','Speed',`×${st.aspdM.toFixed(2)}`],['✦','Crit',`${Math.round(st.crit*100)}%`],['🩸','Lifesteal',`${(st.ls*100).toFixed(1)}%`],['🔮','Spell Siphon',`${(st.sls*100).toFixed(1)}%`],['🛡️','Dmg taken',`-${Math.round(st.red*100)}%`],['💰','Zeny',`×${st.zenyM.toFixed(2)}`],['🟩','Sta regen',`${Math.round(st.staR)}/s`]];
+  h+=`<div class="card"><div class="ttl">Combat</div><div class="cgrid">${cb.map(c=>`<div class="ctile"><span class="sl">${c[0]} ${c[1]}</span><span class="cv">${c[2]}</span></div>`).join('')}</div></div>`;
+  h+=`<div class="card"><div class="ttl">Skill Bar</div><div class="sbar">${S.bar.map((i,n)=>`<div class="sslot ${i===null?'empty':''}"><span class="n">${n+1}</span>${i===null?'<span class="ghost">·</span>':`<span class="e">${C.sk[i].e}</span><span class="sn2">${C.sk[i].n}</span><span class="lvl">Lv${skLv(i)}</span>`}</div>`).join('')}</div><i class="ist">Skill points: ${S.skp} → Skills tab</i></div>`;}
  else if(G.tab==='skills'){h+=skillsHtml();}
  else if(G.tab==='bag'){
   // Paper-doll: the live character centred, equipment slots flanking it. Slots sit
@@ -2518,7 +2530,18 @@ function renderMenu(){const st=G.st=stats(),C=C_();
    const pr=Math.round(iPrice({tier:gt,rar:0,ref:0})*2.2);
    h+=`<div class="row"><span class="nm">${SLOTI[sl]} ${iName({slot:sl,tier:gt,rar:0,ref:0,af:null})}<i>${SLOTN[sl]} · ${pr.toLocaleString()}z</i></span>${(()=>{const n=shopN(pr,80-S.items.length);return `<button data-a="buygear" data-v="${sl}" ${n?'':'disabled'}>${n>1?`Buy ×${n}`:'Buy'}</button>`;})()}</div>`;}
   const bp=boxP();h+=`</div><div class="card"><div class="ttl">🎁 Old Blue Box</div>A random tier-${tier+1} item. 50% Silver · 35% Gold · <b class="r3">15% S-Tier</b>. Rings always roll an affix.<br><button class="mbtn" data-a="box" ${S.zeny>=bp?'':'disabled'}>Open for ${bp.toLocaleString()}z</button></div>`;
-  let tot=0;for(const k in S.loot)tot+=S.loot[k].c*S.loot[k].p;h+=`<button class="mbtn" data-a="sellloot" ${tot?'':'disabled'}>Sell all loot (+${tot.toLocaleString()} z)</button>`;}
+  let tot=0;for(const k in S.loot)tot+=S.loot[k].c*S.loot[k].p;h+=`<button class="mbtn" data-a="sellloot" ${tot?'':'disabled'}>Sell all loot (+${tot.toLocaleString()} z)</button>`;
+  // Selling belongs at the merchant, not only in the bag.
+  const spare=S.items.filter(i=>!Object.values(S.eq).includes(i.id)).sort((a,b)=>iPrice(a)-iPrice(b));
+  h+=`<div class="card"><div class="ttl">\U0001F4B1 Sell</div>`
+   +`<div class="fbar"><button data-a="sellr" data-v="0">Sell all Normal</button><button data-a="sellr" data-v="1">Sell all Silver</button><span class="ist" style="align-self:center">unrefined only</span></div>`
+   +(spare.length?`<div class="igrid">${spare.slice(0,40).map(it=>`<div class="icard q${it.rar}"><span class="inm">${SLOTI[it.slot]} ${iHtml(it)}</span><i class="ist">${iStat(it)}</i><div class="ia"><button data-a="sell" data-v="${it.id}">Sell · ${iPrice(it).toLocaleString()}z</button></div></div>`).join('')}</div>`
+     :'<i class="ist">Nothing spare to sell — everything you own is equipped.</i>')
+   +`</div>`;
+  if(S.bb&&S.bb.length){
+   h+=`<div class="card"><div class="ttl">↩️ Buyback</div><i class="ist">The merchant still has your last ${S.bb.length} sale${S.bb.length>1?'s':''}, at exactly the price you were paid.</i>`
+    +`<div class="igrid">${S.bb.map((e,i)=>`<div class="icard q${e.it.rar}"><span class="inm">${SLOTI[e.it.slot]} ${iHtml(e.it)}</span><i class="ist">${iStat(e.it)}</i><div class="ia"><button data-a="buyback" data-v="${i}" ${S.zeny>=e.p&&S.items.length<80?'':'disabled'}>Buy back · ${e.p.toLocaleString()}z</button></div></div>`).join('')}</div></div>`;}
+  }
  else if(G.tab==='map')h+=mapHtml();
  else if(G.tab==='chat')h+=chatHtml();
  else if(G.tab==='online')h+=onlineHtml();
@@ -2567,6 +2590,12 @@ function fgResult(R,it){
 }
 /* How many to buy on one click: the shop's quantity selector, clamped by what you
    can afford and by whatever cap applies (potion carry limit, bag space). */
+/* Buyback. Selling is otherwise irreversible: one mis-tap on a +12 weapon and it
+   is gone. The merchant holds the last few sales at exactly the price you were
+   paid, so a mistake costs nothing but the round trip. Items are stored as copies
+   because the originals are removed from S.items on sale. */
+const BB_MAX=10;
+function bbPush(it,p){S.bb=S.bb||[];S.bb.unshift({it:Object.assign({},it),p});if(S.bb.length>BB_MAX)S.bb.length=BB_MAX;}
 function shopN(price,cap){
  const q=G.shopQ||1;
  const afford=price>0?Math.floor(S.zeny/price):0;
@@ -2587,14 +2616,18 @@ function menuAct(a,v,b){let reb=false;sfx('ui');
   case 'equip':{const it=itemById(+v);if(it){const k=freeSlotFor(it);if(k){S.eq[k]=it.id;reb=true;}}break;}
   case 'unequip':S.eq[v]=null;reb=true;break;
   case 'autoeq':S.autoEq=S.autoEq?0:1;break;
-  case 'sell':{const it=itemById(+v);if(it&&!Object.values(S.eq).includes(it.id)){const doSell=()=>{if(!S.items.includes(it))return;S.zeny+=iPrice(it);S.items=S.items.filter(x=>x!==it);toast('Sold for '+iPrice(it).toLocaleString()+' z',1200);save();renderMenu();};
+  case 'sell':{const it=itemById(+v);if(it&&!Object.values(S.eq).includes(it.id)){const doSell=()=>{if(!S.items.includes(it))return;const sp=iPrice(it);bbPush(it,sp);S.zeny+=sp;S.items=S.items.filter(x=>x!==it);toast('Sold for '+iPrice(it).toLocaleString()+' z',1200);save();renderMenu();};
    if(it.ref>=8||it.rar>=3){ask(`⚠️ Sell <b>${iHtml(it)}</b>?<br><small>This item is ${it.ref>=8?'<b style="color:#ffd76a">+'+it.ref+'</b> refined':'very rare'}. You will only get <b>${iPrice(it).toLocaleString()} z</b> and it cannot be undone.</small>`,['Keep it','Sell']).then(r=>{if(r===1)doSell();});return;}
    doSell();}break;}
-  case 'sellr':{let t=0;S.items=S.items.filter(i=>{if(i.rar===+v&&!Object.values(S.eq).includes(i.id)&&i.ref===0){t+=iPrice(i);return false;}return true;});S.zeny+=t;toast('Sold for '+t.toLocaleString()+' z');break;}
+  case 'sellr':{let t=0;S.items=S.items.filter(i=>{if(i.rar===+v&&!Object.values(S.eq).includes(i.id)&&i.ref===0){t+=iPrice(i);bbPush(i,iPrice(i));return false;}return true;});S.zeny+=t;toast('Sold for '+t.toLocaleString()+' z');break;}
   case 'sellloot':{let t=0;for(const k in S.loot)t+=S.loot[k].c*S.loot[k].p;S.loot={};S.zeny+=t;if(t)toast('Sold loot for '+t.toLocaleString()+' zeny 💰');break;}
   case 'buy':{const p=POT[v].price,n=shopN(p,POT_MAX-S.pots[v]);if(n){S.zeny-=p*n;S.pots[v]+=n;toast(`${POT[v].n} ×${n}`,1100);}break;}
   case 'protuse':S.useProt=!S.useProt;if(S.useProt&&!(S.prot>0))toast('🛡️ You have no Protection Scrolls yet.<br>Buy some here or in the Shop.',2200);break;
   case 'buyprot':{const n=shopN(PROT_PRICE,null);if(n){S.zeny-=PROT_PRICE*n;S.prot=(S.prot||0)+n;S.useProt=true;sfx('forge');toast(`🛡️ Protection Scroll ×${n} (now ${S.prot})`,1300);}break;}
+  case 'buyback':{S.bb=S.bb||[];const e=S.bb[+v];if(!e)break;
+   if(S.items.length>=80){toast('Your bag is full',1200);break;}
+   if(S.zeny<e.p){toast('Not enough zeny',1200);break;}
+   S.zeny-=e.p;S.items.push(e.it);S.bb.splice(+v,1);sfx('ui');toast('Bought back '+iHtml(e.it),1500);reb=true;break;}
   case 'buyore':{const p=oreP(v),n=shopN(p,null);if(n){S.zeny-=p*n;S.ore[v]+=n;toast(`${ORE[v].e} ${ORE[v].n} ×${n}`,1100);}break;}
   case 'buygear':{const gt=Math.max(0,chTier(S.unlocked)-1);const p=Math.round(iPrice({tier:gt,rar:0,ref:0})*2.2);
    const n=shopN(p,80-S.items.length);

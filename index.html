@@ -265,7 +265,6 @@ textarea.code{width:100%;height:70px;background:#120c1e;color:#cbbde3;border:1px
   --scrim:rgba(5,3,10,.62);        /* full-screen dim       */
 }
 body.fx-glass .trp,
-body.fx-glass #menu,
 body.fx-glass #trade{backdrop-filter:blur(16px) saturate(1.25);-webkit-backdrop-filter:blur(16px) saturate(1.25)}
 
 /* --- full-screen scrims: lighter so the game reads through --- */
@@ -427,6 +426,53 @@ body.fx-glass .eqpc{backdrop-filter:blur(16px) saturate(1.25);-webkit-backdrop-f
 .fgo.risky{border-color:#e8c26a;color:#fff0cc}
 .fgo.deadly{border-color:#ff4d4d;color:#ffd9d9;background:#4a1420}
 @media (max-width:620px){.fgstation{flex-direction:column}.fgstage{flex:1 1 auto;min-height:150px}}
+
+/* ===================== MENU PANEL =====================
+   .mwrap fills #menu minus an 8px gutter and was `background:#1a1229` — fully
+   opaque. So the translucent panel system and the fx-glass blur were only ever
+   affecting that gutter, and every tab rendered against a flat solid box. The
+   panel itself now carries the glass treatment.
+
+   --pan is deliberately more opaque by default than under fx-glass: without the
+   blur, the live 3D scene moving behind body text wrecks legibility, so only the
+   blurred (high) tier can afford the extra transparency. */
+:root{--pan:rgba(26,18,40,.91)}
+body.fx-glass{--pan:rgba(26,18,40,.78)}
+.mwrap{
+  background:linear-gradient(180deg,var(--pan-hi),transparent 96px),var(--pan);
+  /* keep the gold identity, just stop it shouting */
+  border:1px solid rgba(232,194,106,.30);
+  box-shadow:0 20px 52px rgba(0,0,0,.70),inset 0 1px 0 var(--pan-hi);
+}
+body.fx-glass .mwrap{backdrop-filter:blur(18px) saturate(1.25);-webkit-backdrop-filter:blur(18px) saturate(1.25)}
+.mside{border-right:1px solid rgba(120,95,170,.26)}
+
+/* ===================== STATUS TAB ===================== */
+.vit{display:flex;align-items:center;gap:7px;margin-top:5px}
+.vit .vl{flex:0 0 64px;font-size:11px;color:#a99cc0}
+.vit .fgmeter{flex:1 1 auto}
+.fgmeter .bar.hp{background:linear-gradient(90deg,#8a1f2a,#e8465a)}
+.fgmeter .bar.sp{background:linear-gradient(90deg,#1f4a8a,#4aa8e8)}
+.fgmeter .bar.xp{background:linear-gradient(90deg,#8a6a1a,#ffd76a)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.chip{font-size:11.5px;padding:3px 9px;border-radius:11px;background:rgba(0,0,0,.3);border:1px solid rgba(120,95,170,.3);color:#cbbde3}
+.icard .sl,.ctile .sl{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:#a99cc0}
+.icard .stv{font-size:22px;font-weight:800;color:#f0e6ff;line-height:1.15}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(134px,1fr));gap:6px;margin-top:7px}
+.ctile{display:flex;flex-direction:column;gap:1px;padding:7px 9px;border-radius:9px;
+  background:linear-gradient(180deg,rgba(255,255,255,.04),transparent 30px),rgba(14,9,24,.46);
+  border:1px solid rgba(120,95,170,.26)}
+.ctile .cv{font-size:14.5px;font-weight:700;color:#f0e6ff}
+.sbar{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}
+.sslot{position:relative;flex:0 0 78px;min-height:60px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1px;padding:6px 3px;border-radius:9px;text-align:center;
+  background:rgba(14,9,24,.46);border:1px solid rgba(120,95,170,.3)}
+.sslot.empty{border-style:dashed;opacity:.5}
+.sslot .n{position:absolute;top:2px;left:5px;font-size:9px;font-weight:800;color:#8e7fae}
+.sslot .e{font-size:17px;line-height:1}
+.sslot .sn2{font-size:9.5px;color:#cbbde3;line-height:1.15}
+.sslot .lvl{font-size:9px;font-weight:800;color:#ffd76a}
+.sslot .ghost{font-size:17px;opacity:.3}
 </style>
 </head>
 <body>
