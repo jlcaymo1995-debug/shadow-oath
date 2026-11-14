@@ -332,6 +332,52 @@ body.fx-glass #trade{backdrop-filter:blur(16px) saturate(1.25);-webkit-backdrop-
 .q1{border-color:rgba(207,227,255,.46);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 0 9px rgba(160,200,255,.10)}
 .q2{border-color:rgba(255,201,58,.52);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 0 11px rgba(255,190,40,.13)}
 .q3{border-color:rgba(255,59,59,.58);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 0 13px rgba(255,40,40,.17)}
+
+/* ===================== EQUIPMENT PAPER-DOLL =====================
+   Character centred, equipment slots flanking it. The doll has its own small
+   WebGL canvas: a DOM overlay cannot reveal the main canvas behind it, since
+   the menu scrim and card backgrounds paint over everything. */
+.eqwrap{display:flex;gap:8px;align-items:stretch;margin-top:7px}
+.eqcol{display:flex;flex-direction:column;gap:6px;flex:0 0 132px;min-width:0}
+.eqstage{
+  flex:1 1 auto;min-width:0;position:relative;border-radius:12px;
+  background:radial-gradient(ellipse at 50% 42%,rgba(130,100,190,.26),rgba(10,6,18,.55) 68%);
+  border:1px solid rgba(120,95,170,.26);
+  display:flex;align-items:center;justify-content:center;min-height:232px;
+}
+#eqDollC{width:100%;height:100%;display:block;border-radius:12px;touch-action:none;cursor:grab}
+#eqDollC:active{cursor:grabbing}
+.eqstage .hint{position:absolute;bottom:5px;left:0;right:0;text-align:center;font-size:10px;color:#8e7fae;pointer-events:none}
+/* compact slot tiles for the flanking columns */
+.eqcol .eqslot{gap:2px;padding:6px 7px;cursor:pointer}
+.eqcol .eqslot .inm{font-size:11.5px;line-height:1.35}
+.eqcol .eqslot .ist{font-size:10px}
+.eqcol .eqslot:hover{border-color:rgba(232,194,106,.6)}
+@media (max-width:620px){
+  .eqwrap{flex-wrap:wrap}
+  .eqcol{flex:1 1 calc(50% - 4px)}
+  .eqstage{order:-1;flex:1 1 100%;min-height:200px}
+}
+/* ---- item detail popup ---- */
+#eqPop{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;background:rgba(5,3,10,.62);padding:12px}
+#eqPop.show{display:flex}
+.eqpc{
+  width:min(380px,100%);max-height:88%;overflow-y:auto;overscroll-behavior:contain;
+  border-radius:14px;padding:12px 14px;
+  background:linear-gradient(180deg,var(--pan-hi),transparent 90px),var(--pan);
+  border:1px solid var(--pan-br);box-shadow:0 18px 48px rgba(0,0,0,.72),inset 0 1px 0 var(--pan-hi);
+}
+body.fx-glass .eqpc{backdrop-filter:blur(16px) saturate(1.25);-webkit-backdrop-filter:blur(16px) saturate(1.25)}
+.eqpc .eqph{text-align:center;font-size:16px;margin-bottom:8px}
+.eqpc .eqpr{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid rgba(120,95,170,.22);font-size:12.5px}
+.eqpc .eqpr:last-of-type{border-bottom:none}
+.eqpc .eqpr span:last-child{color:#f0e6ff;font-weight:700;text-align:right}
+.eqpc .ia{margin-top:10px}
+
+/* empty slots show a dimmed slot-type icon, so they read as fillable */
+.eqslot .ghost{display:block;text-align:center;font-size:25px;line-height:1.25;opacity:.3;filter:grayscale(.8)}
+.eqslot.empty{border-style:dashed;opacity:.8}
+.eqslot.empty:hover{opacity:1;border-color:rgba(232,194,106,.55)}
 </style>
 </head>
 <body>
