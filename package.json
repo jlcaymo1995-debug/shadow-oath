@@ -1,0 +1,22 @@
+{
+  "name": "shadow-oath",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A Lambo & Calliope soulslike RPG",
+  "scripts": {
+    "dev": "vite",
+    "host": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "firebase": "10.14.1",
+    "three": "0.149.0"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  }
+}
