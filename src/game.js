@@ -2502,21 +2502,21 @@ function renderMenu(){const st=G.st=stats(),C=C_();
       +`<div class="fgmat"><span class="${payZ?'':'no'}">💰 ${rc.z.toLocaleString()} / ${S.zeny.toLocaleString()}</span><span class="${payO?'':'no'}">${ORE[rc.ore].e} ${ORE[rc.ore].n} ${rc.n} / ${S.ore[rc.ore]}</span></div>`)
     +`<div class="fgrail">${Array.from({length:REF_MAX},(_,i)=>`<i class="pip ${i<sel.ref?'on ':''}${i>=10?'d':i>=4?'r':'s'}"></i>`).join('')}</div>`
     +`<div class="ia"><button class="fgo ${band}" data-a="refine" data-v="${sel.id}" ${maxed||!canPay?'disabled':''}>${maxed?'MAXED':'REFINE'}</button></div>`
-    +`<div class="fbar">${[4,10,REF_MAX].filter(t=>t>sel.ref).map(t=>`<button data-a="refineto" data-v="${t}" ${canPay?'':'disabled'}>→ +${t}</button>`).join('')}`
+    +`<div class="fbar">${[10,12,15,18,REF_MAX].filter(t=>t>sel.ref).map(t=>`<button data-a="refineto" data-v="${t}" ${canPay?'':'disabled'}>→ +${t}</button>`).join('')}`
     +`<button data-a="protuse" class="${S.useProt?'on':''}">🛡️ ${S.useProt?'ON':'OFF'} · ${S.prot||0}</button></div>`
     +`<i class="ist">Bulk refining stops before any attempt that could destroy the item, unless Protection is on with scrolls left.</i>`
     +`</div></div>`;}}
  else if(G.tab==='shop'){const tier=chTier(S.unlocked);
-  h+=`<div class="card"><div class="ttl">🏪 Traveling Merchant</div><span class="zen">💰 ${S.zeny.toLocaleString()} zeny</span> · You can carry at most ${POT_MAX} of each potion. Your flask refills for free at any Site of Grace.</div><div class="card"><div class="ttl">Supplies</div>`;
-  for(const k in POT){const p=POT[k];h+=`<div class="row"><span class="nm"><span class="pot" style="background:${p.c}"></span>${p.n} (have ${S.pots[k]}/${POT_MAX})<i>${p.hp?'Heals '+Math.round(p.hp*100)+'% HP':'Restores '+Math.round(p.sp*100)+'% SP'} · ${p.price}z</i></span><button data-a="buy" data-v="${k}" ${S.zeny>=p.price&&S.pots[k]<POT_MAX?'':'disabled'}>Buy</button></div>`;}
-  for(const k in ORE){const pr=oreP(k);h+=`<div class="row"><span class="nm">${ORE[k].e} ${ORE[k].n} (have ${S.ore[k]})<i>${ORE[k].d} · ${pr}z</i></span><button data-a="buyore" data-v="${k}" ${S.zeny>=pr?'':'disabled'}>Buy</button></div>`;}
-  h+=`<div class="row"><span class="nm">🛡️ Protection Scroll (have ${S.prot||0})<i>Keeps a +11 to +20 refine from breaking the item on a fail · ${PROT_PRICE.toLocaleString()}z</i></span><button data-a="buyprot" ${S.zeny>=PROT_PRICE?'':'disabled'}>Buy</button></div>`;
+  h+=`<div class="card"><div class="ttl">🏪 Traveling Merchant</div><span class="zen">💰 ${S.zeny.toLocaleString()} zeny</span> · You can carry at most ${POT_MAX} of each potion. Your flask refills for free at any Site of Grace.<div class="fbar" style="margin-top:6px"><span class="ist" style="align-self:center;margin-right:2px">Buy amount</span>${[1,5,10,25,'max'].map(q=>`<button data-a="shopq" data-v="${q}" class="${String(G.shopQ||1)===String(q)?'on':''}">${q==='max'?'Max':'×'+q}</button>`).join('')}</div></div><div class="card"><div class="ttl">Supplies</div>`;
+  for(const k in POT){const p=POT[k];h+=`<div class="row"><span class="nm"><span class="pot" style="background:${p.c}"></span>${p.n} (have ${S.pots[k]}/${POT_MAX})<i>${p.hp?'Heals '+Math.round(p.hp*100)+'% HP':'Restores '+Math.round(p.sp*100)+'% SP'} · ${p.price}z</i></span>${(()=>{const n=shopN(p.price,POT_MAX-S.pots[k]);return `<button data-a="buy" data-v="${k}" ${n?'':'disabled'}>${n?`Buy ×${n} · ${(p.price*n).toLocaleString()}z`:'Buy'}</button>`;})()}</div>`;}
+  for(const k in ORE){const pr=oreP(k);h+=`<div class="row"><span class="nm">${ORE[k].e} ${ORE[k].n} (have ${S.ore[k]})<i>${ORE[k].d} · ${pr}z</i></span>${(()=>{const n=shopN(pr,null);return `<button data-a="buyore" data-v="${k}" ${n?'':'disabled'}>${n?`Buy ×${n} · ${(pr*n).toLocaleString()}z`:'Buy'}</button>`;})()}</div>`;}
+  h+=`<div class="row"><span class="nm">🛡️ Protection Scroll (have ${S.prot||0})<i>Keeps a +11 to +20 refine from breaking the item on a fail · ${PROT_PRICE.toLocaleString()}z</i></span>${(()=>{const n=shopN(PROT_PRICE,null);return `<button data-a="buyprot" ${n?'':'disabled'}>${n?`Buy ×${n} · ${(PROT_PRICE*n).toLocaleString()}z`:'Buy'}</button>`;})()}</div>`;
   const gt=Math.max(0,tier-1);
   h+=`</div><div class="card"><div class="ttl">🧰 Basic Gear</div><i style="color:#a99cc0;font-size:11px">Plain tier-${gt+1} equipment, one tier behind what drops here. Keeps every slot fillable.</i>`;
   for(const sl of ['w','a','h','l','f','s','r']){
    if(sl==='s'&&!C_().shield)continue;
    const pr=Math.round(iPrice({tier:gt,rar:0,ref:0})*2.2);
-   h+=`<div class="row"><span class="nm">${SLOTI[sl]} ${iName({slot:sl,tier:gt,rar:0,ref:0,af:null})}<i>${SLOTN[sl]} · ${pr.toLocaleString()}z</i></span><button data-a="buygear" data-v="${sl}" ${S.zeny>=pr?'':'disabled'}>Buy</button></div>`;}
+   h+=`<div class="row"><span class="nm">${SLOTI[sl]} ${iName({slot:sl,tier:gt,rar:0,ref:0,af:null})}<i>${SLOTN[sl]} · ${pr.toLocaleString()}z</i></span>${(()=>{const n=shopN(pr,80-S.items.length);return `<button data-a="buygear" data-v="${sl}" ${n?'':'disabled'}>${n>1?`Buy ×${n}`:'Buy'}</button>`;})()}</div>`;}
   const bp=boxP();h+=`</div><div class="card"><div class="ttl">🎁 Old Blue Box</div>A random tier-${tier+1} item. 50% Silver · 35% Gold · <b class="r3">15% S-Tier</b>. Rings always roll an affix.<br><button class="mbtn" data-a="box" ${S.zeny>=bp?'':'disabled'}>Open for ${bp.toLocaleString()}z</button></div>`;
   let tot=0;for(const k in S.loot)tot+=S.loot[k].c*S.loot[k].p;h+=`<button class="mbtn" data-a="sellloot" ${tot?'':'disabled'}>Sell all loot (+${tot.toLocaleString()} z)</button>`;}
  else if(G.tab==='map')h+=mapHtml();
@@ -2565,11 +2565,19 @@ function fgResult(R,it){
  else if(R.r==='broke'){toast(`\U0001F494 <b style="color:#ff3030">THE ITEM BROKE!</b><br>${R.nm} is gone...`,2600);bigText('BROKEN','#c41e1e',1600);sfx('deny');G.shake=.3;}
  else if(R.r==='down'){toast(`\U0001F4A5 <b style="color:#f77">Refine failed...</b>${R.from!==R.to?'<br>Dropped to +'+R.to:''}`,1800);sfx('deny');}
 }
+/* How many to buy on one click: the shop's quantity selector, clamped by what you
+   can afford and by whatever cap applies (potion carry limit, bag space). */
+function shopN(price,cap){
+ const q=G.shopQ||1;
+ const afford=price>0?Math.floor(S.zeny/price):0;
+ const want=q==='max'?Infinity:+q;
+ return Math.max(0,Math.min(want,afford,cap==null?Infinity:cap));
+}
 const oreP=k=>(k==='ori'?400:350)*(1+S.unlocked*.25)|0;
 const boxP=()=>Math.round(800*Math.pow(S.unlocked+1,1.25));
 $('#menu').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;menuAct(b.dataset.a,b.dataset.v,b);});
 function menuAct(a,v,b){let reb=false;sfx('ui');
- switch(a){case 'close':closeMenu();return;case 'tab':G.tab=v;break;case 'bagf':G.bagF=v;break;case 'slot':eqPop(v);return;case 'fgsel':G.fgSel=+v;break;case 'fgf':G.fgF=v;break;
+ switch(a){case 'close':closeMenu();return;case 'tab':G.tab=v;break;case 'bagf':G.bagF=v;break;case 'shopq':G.shopQ=(v==='max'?'max':+v);break;case 'slot':eqPop(v);return;case 'fgsel':G.fgSel=+v;break;case 'fgf':G.fgF=v;break;
   case 'sklearn':learnSkill(v[0],+v.slice(1));break;
   case 'skj':G.skJ=+v;G.skSel='';break;
   case 'sksel':G.skSel=G.skSel===v?'':v;break;
@@ -2584,12 +2592,13 @@ function menuAct(a,v,b){let reb=false;sfx('ui');
    doSell();}break;}
   case 'sellr':{let t=0;S.items=S.items.filter(i=>{if(i.rar===+v&&!Object.values(S.eq).includes(i.id)&&i.ref===0){t+=iPrice(i);return false;}return true;});S.zeny+=t;toast('Sold for '+t.toLocaleString()+' z');break;}
   case 'sellloot':{let t=0;for(const k in S.loot)t+=S.loot[k].c*S.loot[k].p;S.loot={};S.zeny+=t;if(t)toast('Sold loot for '+t.toLocaleString()+' zeny 💰');break;}
-  case 'buy':{const p=POT[v].price;if(S.zeny>=p&&S.pots[v]<POT_MAX){S.zeny-=p;S.pots[v]++;}break;}
+  case 'buy':{const p=POT[v].price,n=shopN(p,POT_MAX-S.pots[v]);if(n){S.zeny-=p*n;S.pots[v]+=n;toast(`${POT[v].n} ×${n}`,1100);}break;}
   case 'protuse':S.useProt=!S.useProt;if(S.useProt&&!(S.prot>0))toast('🛡️ You have no Protection Scrolls yet.<br>Buy some here or in the Shop.',2200);break;
-  case 'buyprot':if(S.zeny>=PROT_PRICE){S.zeny-=PROT_PRICE;S.prot=(S.prot||0)+1;S.useProt=true;sfx('forge');toast('🛡️ Protection Scroll bought ('+S.prot+')',1200);}break;
-  case 'buyore':{const p=oreP(v);if(S.zeny>=p){S.zeny-=p;S.ore[v]++;}break;}
+  case 'buyprot':{const n=shopN(PROT_PRICE,null);if(n){S.zeny-=PROT_PRICE*n;S.prot=(S.prot||0)+n;S.useProt=true;sfx('forge');toast(`🛡️ Protection Scroll ×${n} (now ${S.prot})`,1300);}break;}
+  case 'buyore':{const p=oreP(v),n=shopN(p,null);if(n){S.zeny-=p*n;S.ore[v]+=n;toast(`${ORE[v].e} ${ORE[v].n} ×${n}`,1100);}break;}
   case 'buygear':{const gt=Math.max(0,chTier(S.unlocked)-1);const p=Math.round(iPrice({tier:gt,rar:0,ref:0})*2.2);
-   if(S.zeny>=p&&S.items.length<80){S.zeny-=p;const it=newItem(v,gt,0);S.items.push(it);toast('Bought '+iName(it),1200);reb=true;}
+   const n=shopN(p,80-S.items.length);
+   if(n){S.zeny-=p*n;let last=null;for(let i=0;i<n;i++){last=newItem(v,gt,0);S.items.push(last);}toast('Bought '+iName(last)+(n>1?` ×${n}`:''),1200);reb=true;}
    else if(S.items.length>=80)toast('Your bag is full',1200);break;}
   case 'box':{const p=boxP();if(S.zeny>=p){S.zeny-=p;const r=Math.random();const e=rollEquip(chTier(S.unlocked),false);e.tier=chTier(S.unlocked);e.rar=r<.15?3:r<.5?2:1;e.af=rollAffix(e.slot,e.rar);collect({e});toast(`🎁 You got ${iHtml(S.items[S.items.length-1])}!`,2200);if(e.rar===3){bigText('S-TIER!','#ff2a2a',1600);sfx('stier');}reb=true;}break;}
   case 'refine':{const it=itemById(+v);if(!it)break;const rc=refineCost(it);if(it.ref>=REF_MAX||S.zeny<rc.z||S.ore[rc.ore]<rc.n)break;
