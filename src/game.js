@@ -83,7 +83,7 @@ const ORE={ori:{n:'Oridecon',e:'🔷',d:'Refines weapons'},elu:{n:'Elunium',e:'�
 const REF_RATE=[1,1,1,1,.9,.75,.6,.45,.35,.28,.22,.18,.15,.12,.1,.08,.065,.05,.04,.03];
 // Elden Ring style: 1 stat point per level, each stat caps at 99, 6 stats x 99 = level 594
 const BAG_MAX=150;
-const REF_MAX=20,LV_MAX=594,PROT_PRICE=6000,STAT_MAX=99,STAT_JOB=[99,110,130,150],STAT_W=3.4,EXP_RATE=.7;
+const REF_MAX=20,LV_MAX=594,PROT_PRICE=6000,STAT_MAX=99,STAT_JOB=[99,110,135,155],STAT_W=3.4,EXP_RATE=.7;
 
 /* ================= MONSTER POOL ================= */
 const MOBS={
@@ -2457,7 +2457,7 @@ function renderMenu(){const st=G.st=stats(),C=C_();
    +`<div class="vit"><span class="vl">✨ EXP</span><div class="fgmeter"><div class="bar xp" style="width:${pc(S.exp,xpN)}%"></div><span>${S.exp.toLocaleString()} / ${xpN.toLocaleString()}</span></div></div>`
    +`<div class="chips"><span class="chip">🟩 Stamina ${st.msta}</span><span class="chip">🩸 Flask ${S.flask}</span><span class="chip">💰 ${S.zeny.toLocaleString()} z</span></div></div>`;
   const desc={str:'Melee attack power',agi:'Attack speed, crit, stamina',vit:'Max HP, defense, stamina',int:'Max SP, magic & skill power',dex:'Attack speed; Archer damage',luk:'Critical chance'};
-  h+=`<div class="card"><div class="ttl">Stat Points <span class="zen">${S.pts}</span></div><i class="ist">Max per stat: <b style="color:#ffd76a">${statMax()}</b> as ${jobName()}${(S.job||0)<3?' · next job raises it to <b>'+STAT_JOB[(S.job||0)+1]+'</b>':''}</i><div class="igrid">`;
+  h+=`<div class="card"><div class="ttl">Stat Points <span class="zen">${S.pts}</span></div><div class="chips">${STAT_JOB.map((v,i)=>`<span class="chip ${(S.job||0)===i?'on':(S.job||0)>i?'done':''}">${['1st','2nd','3rd','4th'][i]} Job · ${v}</span>`).join('')}</div><i class="ist">Stat cap per stat, unlocked by job advancement — now <b style="color:#ffd76a">${statMax()}</b> as ${jobName()}.</i><div class="igrid">`;
   for(const k of ['str','agi','vit','int','dex','luk']){const mx=S.st[k]>=statMax();
    h+=`<div class="icard ${mx?'q2':'q0'}"><span class="sl">${k.toUpperCase()}${mx?' · MAX':''}</span><span class="stv">${S.st[k]}</span><i class="ist">${desc[k]}</i>`
     +`<div class="ia"><button data-a="stat" data-v="${k}" ${S.pts&&!mx?'':'disabled'}>+1</button><button data-a="stat5" data-v="${k}" ${S.pts>=1&&!mx?'':'disabled'}>+5</button></div></div>`;}
@@ -2526,12 +2526,13 @@ function renderMenu(){const st=G.st=stats(),C=C_();
     +`<button data-a="protuse" class="${S.useProt?'on':''}">🛡️ ${S.useProt?'ON':'OFF'} · ${S.prot||0}</button></div>`
     +`<i class="ist">Bulk refining stops before any attempt that could destroy the item, unless Protection is on with scrolls left.</i>`
     +`</div></div>`;}}
- else if(G.tab==='shop'){const tier=chTier(S.unlocked),gt=Math.max(0,tier-1);
+ else if(G.tab==='shop'){const tier=chTier(S.unlocked),gt=Math.max(0,tier-1),ST=G.shopT||'buy';
   h+=`<div class="card"><div class="ttl">🏪 Traveling Merchant</div>`
    +`<div class="chips"><span class="chip">💰 ${S.zeny.toLocaleString()} z</span><span class="chip">🩸 Flask ${S.flask}</span><span class="chip">🛡️ Scrolls ${S.prot||0}</span></div>`
-   +`<i class="ist">You can carry at most ${POT_MAX} of each potion. Your flask refills free at any Site of Grace.</i>`
-   +`<div class="fbar" style="margin-top:6px"><span class="ist" style="align-self:center;margin-right:2px">Buy amount</span>${[1,5,10,25,'max'].map(q=>`<button data-a="shopq" data-v="${q}" class="${String(G.shopQ||1)===String(q)?'on':''}">${q==='max'?'Max':'×'+q}</button>`).join('')}</div></div>`;
-  h+=`<div class="card"><div class="ttl">Supplies</div><div class="igrid">`;
+   +`<div class="fbar" style="margin-top:6px">${[['buy','🛍️ Buy'],['sell','💱 Sell'],['bb','↩️ Buyback'+(S.bb&&S.bb.length?' ('+S.bb.length+')':'')]].map(t=>`<button data-a="shopt" data-v="${t[0]}" class="${ST===t[0]?'on':''}">${t[1]}</button>`).join('')}</div></div>`;
+  if(ST==='buy'){
+  h+=`<div class="card"><div class="ttl">Supplies</div><i class="ist">You can carry at most ${POT_MAX} of each potion. Your flask refills free at any Site of Grace.</i>`
+   +`<div class="fbar" style="margin-top:6px"><span class="ist" style="align-self:center;margin-right:2px">Buy amount</span>${[1,5,10,25,'max'].map(q=>`<button data-a="shopq" data-v="${q}" class="${String(G.shopQ||1)===String(q)?'on':''}">${q==='max'?'Max':'×'+q}</button>`).join('')}</div><div class="igrid">`;
   for(const k in POT){const p=POT[k],n=shopN(p.price,POT_MAX-S.pots[k]);
    h+=`<div class="icard q0"><span class="inm"><span class="pot" style="background:${p.c}"></span>${p.n} <small style="color:#a99cc0">${S.pots[k]}/${POT_MAX}</small></span>`
     +`<i class="ist">${p.hp?'Heals '+Math.round(p.hp*100)+'% HP':'Restores '+Math.round(p.sp*100)+'% SP'}</i>`
@@ -2555,11 +2556,11 @@ function renderMenu(){const st=G.st=stats(),C=C_();
    if(sl==='s'&&!C_().shield)continue;
    const proto={id:-1,slot:sl,tier:gt,rar:0,ref:0,af:null};
    const pr=Math.round(iPrice(proto)*2.2),n=shopN(pr,BAG_MAX-S.items.length);
-   const cur=S.eq[sl]?itemById(S.eq[sl]):null,d=cur?Math.round(iScore(proto)-iScore(cur)):1;
+   const cur=curFor(proto),d=cur?Math.round(iScore(proto)-iScore(cur)):1;
    h+=`<div class="icard q0"><span class="inm">${SLOTI[sl]} ${iName(proto)} <span class="${d>0?'up':'dn'}">${d>0?'▲':'▼'}</span></span>`
     +`<i class="ist">${SLOTN[sl]}${iStat(proto)?' · '+iStat(proto):''}</i>`
     +`<div class="fgmat"><span class="${S.zeny>=pr?'':'no'}">${pr.toLocaleString()}z</span></div>`
-    +`<div class="ia"><button data-a="buygear" data-v="${sl}" ${n?'':'disabled'}>${n>1?`Buy ×${n}`:'Buy'}</button></div></div>`;}
+    +`<div class="ia"><button data-a="buygear" data-v="${sl}" ${n?'':'disabled'}>${n?`Buy ×${n} · ${(pr*n).toLocaleString()}z`:'Buy'}</button></div></div>`;}
   h+=`</div></div>`;
   {const bp=boxP();
    h+=`<div class="card"><div class="ttl">🎁 Old Blue Box</div><i class="ist">A random tier-${tier+1} item. Rings always roll an affix.</i>`
@@ -2567,6 +2568,7 @@ function renderMenu(){const st=G.st=stats(),C=C_();
     +`<div class="vit"><span class="vl">Gold</span><div class="fgmeter"><div class="bar risky" style="width:35%"></div><span>35%</span></div></div>`
     +`<div class="vit"><span class="vl">S-Tier</span><div class="fgmeter"><div class="bar deadly" style="width:15%"></div><span>15%</span></div></div>`
     +`<div class="ia"><button class="mbtn" data-a="box" ${S.zeny>=bp?'':'disabled'}>Open for ${bp.toLocaleString()}z</button></div></div>`;}
+  }else if(ST==='sell'){
   // Selling belongs at the merchant, not only in the bag.
   const spare=S.items.filter(i=>!Object.values(S.eq).includes(i.id)).sort((a,b)=>iPrice(a)-iPrice(b));
   h+=`<div class="card"><div class="ttl">💱 Sell</div>`
@@ -2574,10 +2576,12 @@ function renderMenu(){const st=G.st=stats(),C=C_();
    +(spare.length?`<div class="igrid">${spare.slice(0,40).map(it=>`<div class="icard q${it.rar}"><span class="inm">${SLOTI[it.slot]} ${iHtml(it)}</span><i class="ist">${iStat(it)}</i><div class="ia"><button data-a="sell" data-v="${it.id}">Sell · ${iPrice(it).toLocaleString()}z</button></div></div>`).join('')}</div>`
      :'<i class="ist">Nothing spare to sell — everything you own is equipped.</i>')
    +`</div>`;
+  }else{
   if(S.bb&&S.bb.length){
    h+=`<div class="card"><div class="ttl">↩️ Buyback</div><i class="ist">The merchant still has your last ${S.bb.length} sale${S.bb.length>1?'s':''}, at exactly the price you were paid.</i>`
     +`<div class="igrid">${S.bb.map((e,i)=>`<div class="icard q${e.it.rar}"><span class="inm">${SLOTI[e.it.slot]} ${iHtml(e.it)}</span><i class="ist">${iStat(e.it)}</i><div class="ia"><button data-a="buyback" data-v="${i}" ${S.zeny>=e.p&&S.items.length<BAG_MAX?'':'disabled'}>Buy back · ${e.p.toLocaleString()}z</button></div></div>`).join('')}</div></div>`;}
-  }
+  else h+=`<div class="card"><div class="ttl">↩️ Buyback</div><i class="ist">Nothing here yet. Anything you sell waits here and can be bought back at the exact price you were paid.</i></div>`;
+  }}
  else if(G.tab==='map')h+=mapHtml();
  else if(G.tab==='chat')h+=chatHtml();
  else if(G.tab==='online')h+=onlineHtml();
@@ -2642,7 +2646,7 @@ const oreP=k=>(k==='ori'?400:350)*(1+S.unlocked*.25)|0;
 const boxP=()=>Math.round(800*Math.pow(S.unlocked+1,1.25));
 $('#menu').addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b)return;menuAct(b.dataset.a,b.dataset.v,b);});
 function menuAct(a,v,b){let reb=false;sfx('ui');
- switch(a){case 'close':closeMenu();return;case 'tab':G.tab=v;break;case 'bagf':G.bagF=v;break;case 'shopq':G.shopQ=(v==='max'?'max':+v);break;case 'slot':eqPop(v);return;case 'fgsel':G.fgSel=+v;break;case 'fgf':G.fgF=v;break;
+ switch(a){case 'close':closeMenu();return;case 'tab':G.tab=v;break;case 'bagf':G.bagF=v;break;case 'shopq':G.shopQ=(v==='max'?'max':+v);break;case 'shopt':G.shopT=v;break;case 'slot':eqPop(v);return;case 'fgsel':G.fgSel=+v;break;case 'fgf':G.fgF=v;break;
   case 'sklearn':learnSkill(v[0],+v.slice(1));break;
   case 'skj':G.skJ=+v;G.skSel='';break;
   case 'sksel':G.skSel=G.skSel===v?'':v;break;
