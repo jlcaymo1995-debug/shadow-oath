@@ -32,7 +32,14 @@
       slow-motion, big flashes or blinking); colour-blind danger markers (attack
       zones become yellow/black hazard stripes with a white rim, monster attack
       rings turn yellow). Check: '?a11y' at all six sizes (130% text must fit).
-   D. Progression clarity: "What's next" card, job-trial requirements, chapter levels.
+   D. Progression clarity — implemented: a "What's next" card at the top of Status
+      (next job with level bar, the full Orin → 1,000 monsters → Shadow Trial steps,
+      and what it unlocks; job-quest progress; the equipped item closest to its next
+      refine bonus; next chapter with readiness; unspent stat/skill points with an
+      Open Skills shortcut). Both world maps show a readiness badge (✓ Ready /
+      ◐ N under / ⚠️ N under) beside each chapter's recommended level.
+      Check: '?next' at all six sizes, also at 130% text.
+   Phase 6 complete.
 
 Preserve procedural geometry, synthesized audio, offline play, existing characters,
 class choices, and save compatibility. Deliver each chapter as a reviewable phase.

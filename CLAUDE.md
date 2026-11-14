@@ -14,7 +14,7 @@
 - `npm test`, `npx tsc --noEmit`, `npm run build`, `git diff --check`
 - Browser scenarios need `npm run dev` on port 5173:
   `bash scripts/browser-smoke.sh <w,h> <out.png> '?<scenario>'`
-  Scenarios: (none), `fields`, `opening`, `creation`, `account`, `priest`, `woods`, `status`, `progress`, `mire`, `buffs`, `saves`, `a11y`.
+  Scenarios: (none), `fields`, `opening`, `creation`, `account`, `priest`, `woods`, `status`, `progress`, `mire`, `buffs`, `saves`, `a11y`, `next`.
   Check portrait (393,852) and landscape.
 - Report failures as failures. A headless timeout is not proof of a game bug (see MISTAKES.md).
 

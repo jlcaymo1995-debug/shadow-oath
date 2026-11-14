@@ -2899,6 +2899,7 @@ function renderMenuTab(){const st=G.st=stats(),C=C_();
    +`<div class="vit"><span class="vl">💧 SP</span><div class="fgmeter"><div class="bar sp" style="width:${pc(hero.sp,st.msp)}%"></div><span>${Math.floor(hero.sp)} / ${st.msp}</span></div></div>`
    +`<div class="vit"><span class="vl">✨ EXP</span><div class="fgmeter"><div class="bar xp" style="width:${pc(S.exp,xpN)}%"></div><span>${S.exp.toLocaleString()} / ${xpN.toLocaleString()}</span></div></div>`
    +`<div class="chips"><span class="chip">🟩 Stamina ${st.msta}</span><span class="chip">🩸 Flask ${S.flask}</span><span class="chip">💰 ${S.zeny.toLocaleString()} z</span></div></div>`;
+  h+=nextHtml();
   const desc={str:'Melee attack power',agi:'Attack speed, crit, stamina, flee',vit:'Max HP, defense, stamina',int:'Max SP, magic & skill power',dex:'Attack speed; Archer damage',luk:'Critical chance'};
   const P=ptsLeft(),rcost=S.lv*300;
   h+=`<div class="card"><div class="ttl">Stat Points <span class="zen">${P.toLocaleString()}</span> <button data-a="streset" style="float:right" ${ptsSpent(S.st)?'':'disabled'}>↺ Respec · ${rcost.toLocaleString()}z</button></div><div class="chips">${STAT_JOB.map((v,i)=>`<span class="chip ${(S.job||0)===i?'on':(S.job||0)>i?'done':''}">${['1st','2nd','3rd','4th'][i]} Job · ${v}</span>`).join('')}</div><i class="ist">Cap <b style="color:#ffd76a">${statMax()}</b> as ${jobName()} · you gain <b>${STAT_PTS}</b> points per level · raising a stat costs more every 10 points · allocated points count <b>×${STAT_W}</b> in combat · speed-type gains soften past 99.</i><div class="igrid">`;
@@ -3950,7 +3951,7 @@ function mapEldHtml(){const sel=typeof G.mapSel==='number'&&G.mapSel>=20?G.mapSe
   svg+=`<g data-a="mapsel" data-v="${id}" style="cursor:pointer"><line x1="${x}" y1="${y}" x2="${WM2_POS[D.req-20][0]}" y2="${WM2_POS[D.req-20][1]}" stroke="${ok?D.col:'#444'}" stroke-width="2" stroke-dasharray="3 5" opacity=".7"/>${G.mapSel===id?`<rect x="${x-25}" y="${y-25}" width="50" height="50" rx="10" fill="none" stroke="#fff" stroke-width="2.5"/>`:''}<rect x="${x-19}" y="${y-19}" width="38" height="38" rx="8" fill="${ok?'#1a0f24':'#222'}" stroke="${ok?D.col:'#555'}" stroke-width="3" transform="rotate(45 ${x} ${y})"/><text x="${x}" y="${y+7}" font-size="19" text-anchor="middle">${ok?D.e:'🔒'}</text></g>`;}
  svg+='</svg>';if(typeof G.mapSel==='string'&&G.mapSel.startsWith('d:')&&WM2_DG[G.mapSel.slice(2)])return `<div class="card" style="padding:6px">${mapTabs(1)}${svg}</div>`+dgInfoHtml(dgDef(G.mapSel.slice(2)));
  const c=CHS[sel],lk=sel>S.unlocked,ppl=here[sel]||[];
- const info=`<div class="card"><div class="ttl">Chapter ${sel+1}: ${c.name} ${S.cleared[sel]?'👑':''}</div><span style="color:#a99cc0;font-size:12px">${ACTS[actOf(sel)]} · Recommended Lv ${chLevel(sel)}+${c.boss?' · Boss: <b>'+BOSSES[c.boss].n+'</b>':' · Story chapter'}${c.party?` · 🤝 <b style="color:#ff9a9a">Team battle (${c.party} fighters). Companions fill empty spots.</b>`:''}</span>${ppl.length?'<br>👥 Here now: '+ppl.slice(0,8).map(({u,v})=>(FB.friends[u]?'⭐':'')+esc(v.n)).join(', '):''}<br>
+ const info=`<div class="card"><div class="ttl">Chapter ${sel+1}: ${c.name} ${S.cleared[sel]?'👑':''}</div><span style="color:#a99cc0;font-size:12px">${ACTS[actOf(sel)]} · Recommended Lv ${chLevel(sel)}+ ${lvBadge(chLevel(sel))}${c.boss?' · Boss: <b>'+BOSSES[c.boss].n+'</b>':' · Story chapter'}${c.party?` · 🤝 <b style="color:#ff9a9a">Team battle (${c.party} fighters). Companions fill empty spots.</b>`:''}</span>${ppl.length?'<br>👥 Here now: '+ppl.slice(0,8).map(({u,v})=>(FB.friends[u]?'⭐':'')+esc(v.n)).join(', '):''}<br>
   ${lk?`<i>🔒 ${sel===20?'Defeat Malgrath (Chapter 20) to open the New World.':'Clear Chapter '+sel+' to unlock.'}</i>`:S.ch===sel&&!G.dg?'<i>📍 You are here.</i>':`<button class="mbtn" data-a="travel" data-v="${sel}">🚶 Travel here</button>`}</div>`;
  return `<div class="card" style="padding:6px">${mapTabs(1)}${svg}<div style="font-size:11px;color:#a99cc0;margin-top:4px">👑 cleared · 🤝 team battle · 🟢 players there · ▼ you</div></div>`+info+(G.dg?`<button class="mbtn" data-a="dgleave">🚪 Leave</button>`:'');}
 function mapHtml(){if((G.mapW!=null?G.mapW:(S.ch>=20&&!G.dg?1:0))===1)return mapEldHtml();return mapOldHtml();}
@@ -3971,7 +3972,7 @@ function mapOldHtml(){const sel=G.mapSel==null||(typeof G.mapSel==='number'&&G.m
    ${me?`<text x="${x}" y="${y-30}" fill="#ffd76a" font-size="13" font-weight="800" text-anchor="middle">▼ YOU</text>`:''}${here[id]?`<circle cx="${x+20}" cy="${y-18}" r="10" fill="#2fbf6a" stroke="#fff" stroke-width="1.5"/><text x="${x+20}" y="${y-13.5}" fill="#fff" font-size="12" font-weight="800" text-anchor="middle">${here[id].length}</text>`:''}</g>`;}
  svg+='</svg>';
  let info='';const ppl=here[sel]||[];const pl=ppl.length?`<br>👥 Here now: ${ppl.slice(0,8).map(({u,v})=>`${FB.friends[u]?'⭐':''}${esc(v.n)} (Lv ${v.l})`).join(', ')}${ppl.length>8?' +'+(ppl.length-8):''}`:'';
- if(typeof sel==='number'){const i=sel,c=CHS[i],lk=i>S.unlocked;info=`<div class="card"><div class="ttl">Chapter ${i+1}: ${c.name} ${S.cleared[i]?'👑':''}</div><span style="color:#a99cc0;font-size:12px">${ACTS[Math.floor(i/4)]} · Recommended Lv ${chLevel(i)}+ · Boss: <b>${BOSSES[c.boss].n}</b></span>${pl}<br>
+ if(typeof sel==='number'){const i=sel,c=CHS[i],lk=i>S.unlocked;info=`<div class="card"><div class="ttl">Chapter ${i+1}: ${c.name} ${S.cleared[i]?'👑':''}</div><span style="color:#a99cc0;font-size:12px">${ACTS[Math.floor(i/4)]} · Recommended Lv ${chLevel(i)}+ ${lvBadge(chLevel(i))} · Boss: <b>${BOSSES[c.boss].n}</b></span>${pl}<br>
   ${lk?`<i>🔒 Clear Chapter ${i} to unlock.</i>`:S.ch===i&&!G.dg?'<i>📍 You are here.</i>':`<button class="mbtn" data-a="travel" data-v="${i}">🚶 Travel here</button>`}</div>`;}
  else{info=dgInfoHtml(dgDef(String(sel).slice(2)));}
  return `<div class="card" style="padding:6px">${mapTabs(0)}${svg}<div style="font-size:11px;color:#a99cc0;margin-top:4px">Tap a land or a ◆ dungeon. 👑 cleared · 🟢 players there · ▼ you</div></div>`+info+(G.dg?`<button class="mbtn" data-a="dgleave">🚪 Leave ${G.dg.arena?'the Duel Arena':'dungeon'}</button>`:'');}
@@ -4062,6 +4063,27 @@ function talkJM(){const q=S.jq,J=JOBS[S.cls];sfx('ui');
  if(q.s===1){story([['JM',`Keep fighting. ${q.p}/${JQ[q.to].hunt} monsters defeated. Any monster counts, anywhere.`]]);return;}
 
  story([['JM','You are ready. In the Trial Arena you will face the one enemy who knows every move you make.'],['JM','Yourself. Defeat your Shadow, and become the '+J[q.to]+'.']],()=>enterTrial());}
+/* ===== Progression clarity (Phase 6 Pass D) ===== */
+// readiness against a recommended level, shown with words and icons (not colour alone)
+function lvBadge(rec){const d=S.lv-rec;return d>=0?'<span class="rdy ok">✓ Ready</span>':d>=-5?`<span class="rdy near">◐ ${-d} level${d===-1?'':'s'} under</span>`:`<span class="rdy far">⚠️ ${-d} levels under</span>`;}
+function nextJobHtml(){const J=JOBS[S.cls],q=S.jq,to=(S.job||0)+1,bar=(p,t)=>`<div class="fgmeter"><div class="bar xp" style="width:${clamp(p,0,100)}%"></div><span>${t}</span></div>`;
+ if(!q&&to>3)return `<div class="nxr">🎓 <b>${J[3]}</b>: every job path is complete.</div>`;
+ const T=q?q.to:to,I=INNATE[S.cls];const un=[`stat cap ${STAT_JOB[T-1]} → <b>${STAT_JOB[T]}</b>`,`${J[T]} skill tree`].concat(T===PARABELLUM_JOB?['✦ Parabellum']:[]).concat(T===3?['+6 skill points']:[]).concat(I?[`${I.n}: ${I.d(I.v[T])}`]:[]);
+ let h='';
+ if(!q&&S.lv<JOB_LV[T]){const a=JOB_LV[T-1],p=(S.lv-a)/(JOB_LV[T]-a)*100;h=`<div class="nxr">🎓 Next job: <b>${J[T]}</b> at Lv ${JOB_LV[T]}</div>${bar(p,`Lv ${S.lv} / ${JOB_LV[T]} · ${JOB_LV[T]-S.lv} to go`)}<i class="ist">Then: talk to Job Master Orin at a Site of Grace, defeat ${JQ[T].hunt.toLocaleString()} monsters (any), and beat your Shadow in the Trial.</i>`;}
+ else if(!q)h=`<div class="nxr">🎓 <b>Ready for ${J[T]}!</b> Talk to Job Master Orin at any Site of Grace.</div><i class="ist">Then defeat ${JQ[T].hunt.toLocaleString()} monsters (any) and beat your Shadow in the Trial.</i>`;
+ else if(q.s===3)h=`<div class="nxr">🎓 <b>${J[T]}</b>: return to Job Master Orin for the Trial, and defeat your Shadow.</div>`;
+ else h=`<div class="nxr">🎓 Job quest: <b>${J[T]}</b></div>${bar(q.p/JQ[T].hunt*100,`Monsters ${q.p.toLocaleString()} / ${JQ[T].hunt.toLocaleString()}`)}<i class="ist">Then return to Job Master Orin and beat your Shadow in the Trial.</i>`;
+ return h+`<i class="ist nxu">Unlocks: ${un.join(' · ')}</i>`;}
+function nextRefineHtml(){const eq=Object.values(eqItems()).filter(Boolean);if(!eq.length)return '';let best=null;
+ for(const it of eq){const nm=nextRefineMilestone(it.ref||0);if(nm&&(!best||nm.at-it.ref<best.nm.at-best.it.ref))best={it,nm};}
+ if(!best)return `<div class="nxr">⚒️ All equipped gear has its +15 refine bonus.</div>`;
+ const cur=refineBonus(best.it.ref||0);return `<div class="nxr">⚒️ ${SLOTI[best.it.slot]} ${esc(iName(best.it))} → <b>+${best.nm.at}</b>: all stats ${cur?'+'+cur+' → ':''}<b>+${best.nm.v}</b> <i class="ist">(${best.nm.at-best.it.ref} refine${best.nm.at-best.it.ref>1?'s':''} away)</i></div>`;}
+function nextChapterHtml(){const c=Math.min(S.unlocked||0,CHS.length-1);if(S.cleared[c])return '';const rec=chLevel(c);
+ return `<div class="nxr">🗺️ Next chapter: <b>Ch.${c+1} ${esc(CHS[c].name)}</b> · Recommended Lv ${rec}+ ${lvBadge(rec)}</div>`;}
+function nextHtml(){const P=ptsLeft();let h=`<div class="card nxcard"><div class="ttl">🧭 What's next</div>`+nextJobHtml()+nextRefineHtml()+nextChapterHtml();
+ if(P>0||S.skp>0)h+=`<div class="nxr">${P>0?`📊 <b>${P.toLocaleString()}</b> stat points to spend below`:''}${P>0&&S.skp>0?' · ':''}${S.skp>0?`🌟 <b>${S.skp}</b> skill point${S.skp>1?'s':''} <button data-a="tab" data-v="skills" style="min-height:44px">Open Skills</button>`:''}</div>`;
+ return h+'</div>';}
 function jqKill(d){const q=S.jq;if(!q)return;if(q.s===2)q.s=1;if(q.s!==1)return;const R=JQ[q.to];
  q.p++;if(q.p%100===0||q.p>=R.hunt)log(`🎓 Job Quest: ${q.p}/${R.hunt}`);if(q.p>=R.hunt){q.s=3;q.p=R.hunt;banner('Job Quest complete!','Return to Job Master Orin for the Trial',3000);sfx('quest');save();}}
 function jqShard(){return;const q=S.jq;if(!q||q.s!==2||!JQ[q.to].sh)return;q.sh=(q.sh||0)+1;log(`💎 Awakening Shard (${q.sh}/${JQ[q.to].sh})`);bigText('AWAKENING SHARD','#b04aff',1600);jqCheck2();}
