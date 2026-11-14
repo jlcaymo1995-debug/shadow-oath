@@ -2518,23 +2518,51 @@ function renderMenu(){const st=G.st=stats(),C=C_();
     +`<button data-a="protuse" class="${S.useProt?'on':''}">🛡️ ${S.useProt?'ON':'OFF'} · ${S.prot||0}</button></div>`
     +`<i class="ist">Bulk refining stops before any attempt that could destroy the item, unless Protection is on with scrolls left.</i>`
     +`</div></div>`;}}
- else if(G.tab==='shop'){const tier=chTier(S.unlocked);
-  h+=`<div class="card"><div class="ttl">🏪 Traveling Merchant</div><span class="zen">💰 ${S.zeny.toLocaleString()} zeny</span> · You can carry at most ${POT_MAX} of each potion. Your flask refills for free at any Site of Grace.<div class="fbar" style="margin-top:6px"><span class="ist" style="align-self:center;margin-right:2px">Buy amount</span>${[1,5,10,25,'max'].map(q=>`<button data-a="shopq" data-v="${q}" class="${String(G.shopQ||1)===String(q)?'on':''}">${q==='max'?'Max':'×'+q}</button>`).join('')}</div></div><div class="card"><div class="ttl">Supplies</div>`;
-  for(const k in POT){const p=POT[k];h+=`<div class="row"><span class="nm"><span class="pot" style="background:${p.c}"></span>${p.n} (have ${S.pots[k]}/${POT_MAX})<i>${p.hp?'Heals '+Math.round(p.hp*100)+'% HP':'Restores '+Math.round(p.sp*100)+'% SP'} · ${p.price}z</i></span>${(()=>{const n=shopN(p.price,POT_MAX-S.pots[k]);return `<button data-a="buy" data-v="${k}" ${n?'':'disabled'}>${n?`Buy ×${n} · ${(p.price*n).toLocaleString()}z`:'Buy'}</button>`;})()}</div>`;}
-  for(const k in ORE){const pr=oreP(k);h+=`<div class="row"><span class="nm">${ORE[k].e} ${ORE[k].n} (have ${S.ore[k]})<i>${ORE[k].d} · ${pr}z</i></span>${(()=>{const n=shopN(pr,null);return `<button data-a="buyore" data-v="${k}" ${n?'':'disabled'}>${n?`Buy ×${n} · ${(pr*n).toLocaleString()}z`:'Buy'}</button>`;})()}</div>`;}
-  h+=`<div class="row"><span class="nm">🛡️ Protection Scroll (have ${S.prot||0})<i>Keeps a +11 to +20 refine from breaking the item on a fail · ${PROT_PRICE.toLocaleString()}z</i></span>${(()=>{const n=shopN(PROT_PRICE,null);return `<button data-a="buyprot" ${n?'':'disabled'}>${n?`Buy ×${n} · ${(PROT_PRICE*n).toLocaleString()}z`:'Buy'}</button>`;})()}</div>`;
-  const gt=Math.max(0,tier-1);
-  h+=`</div><div class="card"><div class="ttl">🧰 Basic Gear</div><i style="color:#a99cc0;font-size:11px">Plain tier-${gt+1} equipment, one tier behind what drops here. Keeps every slot fillable.</i>`;
+ else if(G.tab==='shop'){const tier=chTier(S.unlocked),gt=Math.max(0,tier-1);
+  h+=`<div class="card"><div class="ttl">🏪 Traveling Merchant</div>`
+   +`<div class="chips"><span class="chip">💰 ${S.zeny.toLocaleString()} z</span><span class="chip">🩸 Flask ${S.flask}</span><span class="chip">🛡️ Scrolls ${S.prot||0}</span></div>`
+   +`<i class="ist">You can carry at most ${POT_MAX} of each potion. Your flask refills free at any Site of Grace.</i>`
+   +`<div class="fbar" style="margin-top:6px"><span class="ist" style="align-self:center;margin-right:2px">Buy amount</span>${[1,5,10,25,'max'].map(q=>`<button data-a="shopq" data-v="${q}" class="${String(G.shopQ||1)===String(q)?'on':''}">${q==='max'?'Max':'×'+q}</button>`).join('')}</div></div>`;
+  h+=`<div class="card"><div class="ttl">Supplies</div><div class="igrid">`;
+  for(const k in POT){const p=POT[k],n=shopN(p.price,POT_MAX-S.pots[k]);
+   h+=`<div class="icard q0"><span class="inm"><span class="pot" style="background:${p.c}"></span>${p.n} <small style="color:#a99cc0">${S.pots[k]}/${POT_MAX}</small></span>`
+    +`<i class="ist">${p.hp?'Heals '+Math.round(p.hp*100)+'% HP':'Restores '+Math.round(p.sp*100)+'% SP'}</i>`
+    +`<div class="fgmat"><span class="${S.zeny>=p.price?'':'no'}">${p.price.toLocaleString()}z each</span></div>`
+    +`<div class="ia"><button data-a="buy" data-v="${k}" ${n?'':'disabled'}>${n?`Buy ×${n} · ${(p.price*n).toLocaleString()}z`:'Buy'}</button></div></div>`;}
+  for(const k in ORE){const pr=oreP(k),n=shopN(pr,null);
+   h+=`<div class="icard q1"><span class="inm">${ORE[k].e} ${ORE[k].n} <small style="color:#a99cc0">have ${S.ore[k]}</small></span>`
+    +`<i class="ist">${ORE[k].d}</i>`
+    +`<div class="fgmat"><span class="${S.zeny>=pr?'':'no'}">${pr.toLocaleString()}z each</span></div>`
+    +`<div class="ia"><button data-a="buyore" data-v="${k}" ${n?'':'disabled'}>${n?`Buy ×${n} · ${(pr*n).toLocaleString()}z`:'Buy'}</button></div></div>`;}
+  {const n=shopN(PROT_PRICE,null);
+   h+=`<div class="icard q2"><span class="inm">🛡️ Protection Scroll <small style="color:#a99cc0">have ${S.prot||0}</small></span>`
+    +`<i class="ist">Stops a +11→+20 refine from destroying the item; it drops 1 level instead.</i>`
+    +`<div class="fgmat"><span class="${S.zeny>=PROT_PRICE?'':'no'}">${PROT_PRICE.toLocaleString()}z each</span></div>`
+    +`<div class="ia"><button data-a="buyprot" ${n?'':'disabled'}>${n?`Buy ×${n} · ${(PROT_PRICE*n).toLocaleString()}z`:'Buy'}</button></div></div>`;}
+  h+=`</div></div>`;
+  // Gear now shows its stats and an upgrade arrow against what you have equipped —
+  // previously it was a bare name, so there was no way to tell if it was better.
+  h+=`<div class="card"><div class="ttl">🧰 Basic Gear</div><i class="ist">Plain tier-${gt+1} equipment, one tier behind what drops here. Keeps every slot fillable.</i><div class="igrid">`;
   for(const sl of ['w','a','h','l','f','s','r']){
    if(sl==='s'&&!C_().shield)continue;
-   const pr=Math.round(iPrice({tier:gt,rar:0,ref:0})*2.2);
-   h+=`<div class="row"><span class="nm">${SLOTI[sl]} ${iName({slot:sl,tier:gt,rar:0,ref:0,af:null})}<i>${SLOTN[sl]} · ${pr.toLocaleString()}z</i></span>${(()=>{const n=shopN(pr,80-S.items.length);return `<button data-a="buygear" data-v="${sl}" ${n?'':'disabled'}>${n>1?`Buy ×${n}`:'Buy'}</button>`;})()}</div>`;}
-  const bp=boxP();h+=`</div><div class="card"><div class="ttl">🎁 Old Blue Box</div>A random tier-${tier+1} item. 50% Silver · 35% Gold · <b class="r3">15% S-Tier</b>. Rings always roll an affix.<br><button class="mbtn" data-a="box" ${S.zeny>=bp?'':'disabled'}>Open for ${bp.toLocaleString()}z</button></div>`;
-  let tot=0;for(const k in S.loot)tot+=S.loot[k].c*S.loot[k].p;h+=`<button class="mbtn" data-a="sellloot" ${tot?'':'disabled'}>Sell all loot (+${tot.toLocaleString()} z)</button>`;
+   const proto={id:-1,slot:sl,tier:gt,rar:0,ref:0,af:null};
+   const pr=Math.round(iPrice(proto)*2.2),n=shopN(pr,80-S.items.length);
+   const cur=S.eq[sl]?itemById(S.eq[sl]):null,d=cur?Math.round(iScore(proto)-iScore(cur)):1;
+   h+=`<div class="icard q0"><span class="inm">${SLOTI[sl]} ${iName(proto)} <span class="${d>0?'up':'dn'}">${d>0?'▲':'▼'}</span></span>`
+    +`<i class="ist">${SLOTN[sl]}${iStat(proto)?' · '+iStat(proto):''}</i>`
+    +`<div class="fgmat"><span class="${S.zeny>=pr?'':'no'}">${pr.toLocaleString()}z</span></div>`
+    +`<div class="ia"><button data-a="buygear" data-v="${sl}" ${n?'':'disabled'}>${n>1?`Buy ×${n}`:'Buy'}</button></div></div>`;}
+  h+=`</div></div>`;
+  {const bp=boxP();
+   h+=`<div class="card"><div class="ttl">🎁 Old Blue Box</div><i class="ist">A random tier-${tier+1} item. Rings always roll an affix.</i>`
+    +`<div class="vit"><span class="vl">Silver</span><div class="fgmeter"><div class="bar" style="width:50%;background:linear-gradient(90deg,#5a6a80,#9fb6d6)"></div><span>50%</span></div></div>`
+    +`<div class="vit"><span class="vl">Gold</span><div class="fgmeter"><div class="bar risky" style="width:35%"></div><span>35%</span></div></div>`
+    +`<div class="vit"><span class="vl">S-Tier</span><div class="fgmeter"><div class="bar deadly" style="width:15%"></div><span>15%</span></div></div>`
+    +`<div class="ia"><button class="mbtn" data-a="box" ${S.zeny>=bp?'':'disabled'}>Open for ${bp.toLocaleString()}z</button></div></div>`;}
   // Selling belongs at the merchant, not only in the bag.
   const spare=S.items.filter(i=>!Object.values(S.eq).includes(i.id)).sort((a,b)=>iPrice(a)-iPrice(b));
   h+=`<div class="card"><div class="ttl">\U0001F4B1 Sell</div>`
-   +`<div class="fbar"><button data-a="sellr" data-v="0">Sell all Normal</button><button data-a="sellr" data-v="1">Sell all Silver</button><span class="ist" style="align-self:center">unrefined only</span></div>`
+   +`<div class="fbar"><button data-a="sellr" data-v="0">Sell all Normal</button><button data-a="sellr" data-v="1">Sell all Silver</button><span class="ist" style="align-self:center">unrefined only</span>${(()=>{let t=0;for(const k in S.loot)t+=S.loot[k].c*S.loot[k].p;return `<button data-a="sellloot" ${t?'':'disabled'}>Sell all loot · ${t.toLocaleString()}z</button>`;})()}</div>`
    +(spare.length?`<div class="igrid">${spare.slice(0,40).map(it=>`<div class="icard q${it.rar}"><span class="inm">${SLOTI[it.slot]} ${iHtml(it)}</span><i class="ist">${iStat(it)}</i><div class="ia"><button data-a="sell" data-v="${it.id}">Sell · ${iPrice(it).toLocaleString()}z</button></div></div>`).join('')}</div>`
      :'<i class="ist">Nothing spare to sell — everything you own is equipped.</i>')
    +`</div>`;
