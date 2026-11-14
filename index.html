@@ -68,7 +68,14 @@ body.ios .tag{margin-bottom:10px}
 .stb.low>div{background:#c33}
 .sp>div{background:linear-gradient(#6db6ff,#2459c7)}
 .ex{height:5px}.ex>div{background:linear-gradient(#ffe38a,#d49b16)}
-#log{position:absolute;left:calc(128px + env(safe-area-inset-left));top:calc(82px + env(safe-area-inset-top));width:min(280px,32vw);display:flex;flex-direction:column;gap:2px}
+/* active buffs: icon, seconds left, ring showing time remaining; blinks under 5s; blue rim = from a party member */
+#bfR{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}#bfR:empty{display:none}
+.bf{position:relative;width:28px;height:28px;border-radius:7px;display:grid;place-items:center;background:conic-gradient(rgba(255,215,106,.42) var(--f),rgba(0,0,0,.6) 0);border:1px solid rgba(255,215,106,.55)}
+.bf i{font-style:normal;font-size:15px;line-height:1}.bf b{position:absolute;right:-3px;bottom:-4px;font-size:9.5px;font-weight:800;color:#fff;background:rgba(10,7,18,.85);border-radius:5px;padding:0 3px;line-height:12px}
+.bf.party{border-color:rgba(127,200,255,.8)}.bf.low{animation:bfb .45s infinite alternate}@keyframes bfb{to{opacity:.4}}
+.albf{font-size:11px;letter-spacing:1px}
+.ptbf{display:flex;gap:2px;margin-top:2px;font-size:11px;line-height:1}.ptbf i{font-style:normal}.ptbf i.low{opacity:.45}
+#log{position:absolute;left:calc(128px + env(safe-area-inset-left));top:calc(82px + var(--bfh,0px) + env(safe-area-inset-top));width:min(280px,32vw);display:flex;flex-direction:column;gap:2px}
 #log div{background:rgba(10,8,18,.65);padding:2px 6px;border-radius:5px;font-size:10.5px;animation:fo 5s forwards}
 @keyframes fo{0%{opacity:0;transform:translateX(-6px)}8%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0}}
 #hr{position:absolute;right:calc(8px + env(safe-area-inset-right));top:calc(6px + env(safe-area-inset-top));text-align:right;font-size:11px;line-height:1.45}
@@ -215,8 +222,8 @@ body.ios .tag{margin-bottom:10px}
 .crow{display:flex;align-items:center;gap:8px;font-size:12px;color:#a99cc0}.crow>span{width:66px;flex:0 0 66px}
 .seg.sm button{padding:6px 4px;font-size:12px}
 .sw{display:flex;gap:6px;flex-wrap:wrap}.sw button{width:26px;height:26px;border-radius:50%;border:2px solid #47355f;padding:0;font-size:10px;color:#fff}.sw button.on{border-color:#ffd76a;box-shadow:0 0 0 2px #ffd76a}
-#mm{position:absolute;left:calc(8px + env(safe-area-inset-left));top:calc(82px + env(safe-area-inset-top));width:112px;height:112px;border-radius:50%;pointer-events:auto;box-shadow:0 0 0 2px rgba(232,194,106,.7),0 2px 8px rgba(0,0,0,.6)}
-#mmZ{position:absolute;left:calc(92px + env(safe-area-inset-left));top:calc(176px + env(safe-area-inset-top));font-size:9px;color:#e8c26a;font-weight:800;text-shadow:0 1px 2px #000;pointer-events:none}
+#mm{position:absolute;left:calc(8px + env(safe-area-inset-left));top:calc(82px + var(--bfh,0px) + env(safe-area-inset-top));width:112px;height:112px;border-radius:50%;pointer-events:auto;box-shadow:0 0 0 2px rgba(232,194,106,.7),0 2px 8px rgba(0,0,0,.6)}
+#mmZ{position:absolute;left:calc(92px + env(safe-area-inset-left));top:calc(176px + var(--bfh,0px) + env(safe-area-inset-top));font-size:9px;color:#e8c26a;font-weight:800;text-shadow:0 1px 2px #000;pointer-events:none}
 textarea.code{width:100%;height:70px;background:#120c1e;color:#cbbde3;border:1px solid #47355f;border-radius:8px;padding:6px;font-size:11px;user-select:text;-webkit-user-select:text}
 
 .skhd{display:flex;align-items:center;gap:10px}.skhd>div:first-child{flex:1}
@@ -642,6 +649,7 @@ body.fx-glass .mwrap{backdrop-filter:blur(18px) saturate(1.25);-webkit-backdrop-
     <div class="bar stb" id="stB"><div id="stF"></div></div>
     <div class="bar sp"><div id="spF"></div><span id="spT"></span></div>
     <div class="bar ex"><div id="exF"></div></div>
+    <div id="bfR" aria-label="Active buffs"></div>
   </div>
   <canvas id="mm" width="224" height="224"></canvas><div id="mmZ">1x</div>
   <div id="log"></div>

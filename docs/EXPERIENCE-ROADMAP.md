@@ -8,9 +8,20 @@
 4. Login/account screens and current onboarding information (implemented).
 5. Whispering Woods and Mire of Lanterns: routes, NPCs, encounter identities.
 6. Progression clarity, accessibility, save recovery, then wider chapter rollout.
-7. UI follow-ups (requested after phases 5 and 6): HUD buff icons with timers,
-   live-refreshing Status screen while buffs start/expire, buff icons on party
-   frames, and deciding whether AI companions receive Priest party buffs.
+7. Phase 6, in passes (agreed order A → B → C → D):
+   A. Combat clarity — implemented: HUD buff icons (seconds + shrinking ring, blink
+      under 5s, blue rim for buffs from a party member; minimap and log move down
+      to make room), buff icons on party frames (keys sent in the position packet,
+      older 9-field packets still accepted), Status refreshes when a buff starts or
+      ends while open. AI companions in your fight count as party: Priest party
+      buffs from you or a party member reach them in range (Blessing: +0.5% damage
+      per STR+INT point; Increase Agility: faster attacks and running; Gloria: crits).
+      Their labels show the icons, mirrored to other players.
+      Check: '?buffs' at all six device sizes in CLAUDE.md.
+   B. Save recovery: rolling backups per slot, restore earlier save, corrupted-save
+      detection, export/import.
+   C. Accessibility: text size, reduced motion, colour-blind-friendly danger markers.
+   D. Progression clarity: "What's next" card, job-trial requirements, chapter levels.
 
 Preserve procedural geometry, synthesized audio, offline play, existing characters,
 class choices, and save compatibility. Deliver each chapter as a reviewable phase.

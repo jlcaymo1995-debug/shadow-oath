@@ -7,7 +7,7 @@ module=$(mktemp ./src/qa-XXXXXX.js)
 frame=$(mktemp ./qa-frame-XXXXXX.html)
 profile=$(mktemp -d /tmp/so-scenario-XXXXXX)
 trap 'rm -f "$fixture" "$module" "$frame"' EXIT
-cat src/game.js tests/browser-scenarios.js tests/verdant-browser.js tests/opening-browser.js tests/creation-browser.js tests/account-browser.js tests/priest-browser.js tests/woods-browser.js tests/status-browser.js tests/progress-browser.js tests/mire-browser.js > "$module"
+cat src/game.js tests/browser-scenarios.js tests/verdant-browser.js tests/opening-browser.js tests/creation-browser.js tests/account-browser.js tests/priest-browser.js tests/woods-browser.js tests/status-browser.js tests/progress-browser.js tests/mire-browser.js tests/buffs-browser.js > "$module"
 MODULE_PATH="${module#./}" FIXTURE_PATH="$fixture" FRAME_PATH="$frame" QA_SIZE="${1:-640,503}" QA_QUERY="${3:-}" python3 - <<'PY'
 import os
 from pathlib import Path
