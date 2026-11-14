@@ -339,6 +339,28 @@ function chLevel(c){return 1+c*3;}
 
 
 function statMax(s){s=s||S;return STAT_JOB[(s&&s.job)||0]||STAT_MAX;}
+/* RO-style stat economy. Each level grants STAT_PTS points, and raising a stat
+   from v to v+1 costs 2+floor(v/10) of them — so the 90s cost ~11 each and the
+   escalating price IS the soft cap, visible to the player instead of hidden in
+   formulas. Remaining points are DERIVED (earned minus spent), never stored:
+   old saves self-heal and respec is just resetting stats to class base. */
+const STAT_PTS=4;
+const stCost=v=>2+Math.floor(v/10);
+function stCostN(v,n){let t=0;for(let i=0;i<n;i++)t+=stCost(v+i);return t;}
+function ptsEarned(lv){return (lv-1)*STAT_PTS;}
+function ptsSpent(st,ck){const b=CLASSES[ck||S.cls].base;let t=0;
+ for(const k in st)for(let v=(b[k]||0);v<st[k];v++)t+=stCost(v);return t;}
+function ptsLeft(){return Math.max(0,ptsEarned(S.lv)-ptsSpent(S.st));}
+/* What one more point in k buys right now, as a compact label. */
+function statDelta(k){const a=stats();S.st[k]++;const b=stats();S.st[k]--;const o=[];
+ if(b.atk>a.atk)o.push('ATK +'+(b.atk-a.atk));
+ if(b.mhp>a.mhp)o.push('HP +'+(b.mhp-a.mhp));
+ if(b.msp>a.msp)o.push('SP +'+(b.msp-a.msp));
+ if(b.def>a.def)o.push('DEF +'+(b.def-a.def));
+ if(b.crit>a.crit)o.push('Crit +'+Math.round((b.crit-a.crit)*100)+'%');
+ if(b.aspdM>a.aspdM)o.push('Spd +'+(b.aspdM-a.aspdM).toFixed(2));
+ if(b.msta>a.msta)o.push('Sta +'+(b.msta-a.msta));
+ return o.slice(0,3).join(' · ');}
 /* ================= JOBS (4 per class) + per-job skill trees ================= */
 const JOB_LV=[1,99,300,500];
 const JOBS={
@@ -1382,7 +1404,7 @@ function exportCode(){return btoa(unescape(encodeURIComponent(JSON.stringify(S))
 function importCode(code){try{const s=JSON.parse(decodeURIComponent(escape(atob(code.trim().replace(/\s+/g,'')))));if(s&&(s.v===2||s.v===3)&&s.cls&&CLASSES[s.cls])return s;}catch(e){}return null;}
 function newItem(slot,tier,rar,ref,af){return {id:S.nid++,slot,tier,rar,ref:ref||0,af:af||null};}
 function freshSave(hk,ck,cust,df){
- S={v:4,hero:hk,cls:ck,cust:cust||null,diff:df==null?1:df,skp:0,sk:{a0:1},bar:[0,null,null,null,null,null],job:0,lv:1,exp:0,st:Object.assign({},CLASSES[ck].base),pts:0,zeny:150,pots:{red:3,orange:0,white:0,blue:1},loot:{},ore:{ori:2,elu:2},items:[],eq:{w:null,s:null,a:null,h:null,l:null,f:null,r:null,r2:null},nid:1,ch:0,unlocked:0,cleared:[],q:[],flask:3,blood:null,auto:0,autoEq:1,ngp:0,done:0,music:1,sfx:1,play:0};
+ S={v:5,hero:hk,cls:ck,cust:cust||null,diff:df==null?1:df,skp:0,sk:{a0:1},bar:[0,null,null,null,null,null],job:0,lv:1,exp:0,st:Object.assign({},CLASSES[ck].base),pts:0,zeny:150,pots:{red:3,orange:0,white:0,blue:1},loot:{},ore:{ori:2,elu:2},items:[],eq:{w:null,s:null,a:null,h:null,l:null,f:null,r:null,r2:null},nid:1,ch:0,unlocked:0,cleared:[],q:[],flask:3,blood:null,auto:0,autoEq:1,ngp:0,done:0,music:1,sfx:1,play:0};
  for(let i=0;i<CHS.length;i++){S.cleared.push(0);S.q.push({s:0,p:0,shr:[0,0,0]});}
  const w=newItem('w',0,0),a=newItem('a',0,0),f=newItem('f',0,0);S.items.push(w,a,f);S.eq.w=w.id;S.eq.a=a.id;S.eq.f=f.id;
  if(CLASSES[ck].shield){const s=newItem('s',0,0);S.items.push(s);S.eq.s=s.id;}
@@ -1625,7 +1647,7 @@ function heroDie(){if(NET.duel&&NET.duel.team){const d=NET.duel;if(!d.myOut){d.m
  if(G.bossFight||G.boss){endBossFight(false);}save();}
 function respawn(){if(G.dg){exitDungeon();return;}const st=G.st;G.inArena=false;hero.dead=false;hero.state='idle';hero.x=0;hero.z=4;hero.face=Math.PI;hero.hp=st.mhp;hero.sp=st.msp;hero.sta=st.msta;hero.flask=S.flask;respawnMobs();G.introDone=0;G.gate=S.q[S.ch].s>=3||S.cleared[S.ch]?'open':'sealed';updateGate();snapCam();musicFor(S.ch,false);}
 function restAtGrace(){const st=G.st;hero.hp=st.mhp;hero.sp=st.msp;hero.sta=st.msta;hero.flask=S.flask;hero.buffs={};if(!NET.on){G.mobs.filter(m=>!m.dead&&m.boss).forEach(removeMob);respawnMobs();}bigText('REST','#ffd76a',1600);sfx('rest');fxRing(0,0,4,0xffd76a,1);PS.burst(0,gY(0,0)+.5,0,30,0xffd76a,{sp:2,up:4,g:1,life:1.2});save();toast('Flask refilled · HP/SP restored'+(NET.on?'':' · Enemies have returned')+' · Game saved',2600);}
-function gainExp(x){x=Math.round(x);S.exp+=x;let up=false;while(S.exp>=need(S.lv)&&S.lv<LV_MAX){S.exp-=need(S.lv);S.lv++;S.pts+=1;up=true;if(S.job<3&&S.lv===JOB_LV[S.job+1]){setTimeout(()=>{banner('🎓 Job Master Orin appeared','He waits by the Site of Grace',3200);jmSpawn();},1500);}}
+function gainExp(x){x=Math.round(x);S.exp+=x;let up=false;while(S.exp>=need(S.lv)&&S.lv<LV_MAX){S.exp-=need(S.lv);S.lv++;up=true;if(S.job<3&&S.lv===JOB_LV[S.job+1]){setTimeout(()=>{banner('🎓 Job Master Orin appeared','He waits by the Site of Grace',3200);jmSpawn();},1500);}}
  if(up)skSync();
  if(up){NET.infoDirty=true;G.st=stats();hero.hp=G.st.mhp;hero.sp=G.st.msp;fxRing(hero.x,hero.z,3,0xffd76a,.9);fxSpark(hero.x,hero.y+1.5,hero.z,0xffd76a,4);PS.burst(hero.x,hero.y+.5,hero.z,30,0xffd76a,{sp:2,up:5,g:2,life:1});txt(hero.x,hero.y+3.2,hero.z,'LEVEL UP!','#ffd76a',true);toast(`⭐ Level ${S.lv}! +1 stat point${S.skp?' · '+S.skp+' skill points':''} → ☰ Menu`,2200);sfx('levelup');}}
 function rollRarity(boss){const r=Math.random();if(boss)return r<.35?3:2;return r<.014?3:r<.08?2:r<.3?1:0;}
@@ -2438,7 +2460,7 @@ function hud(){const st=G.st,ch=CHS[S.ch],C=C_();try{drawMM();}catch(e){}
  for(let s=0;s<6;s++){const sk=barSkill(s),n=s+1,bt=$('#bS'+n);let lk=bt.querySelector('.lock');if(!sk){$('#s'+n+'e').textContent='·';$('#s'+n+'n').textContent='SKILL '+n;$('#cd'+n).style.height='0';bt.classList.add('off');if(!lk){lk=document.createElement('div');lk.className='lock';bt.appendChild(lk);}lk.textContent='empty';continue;}if(lk)lk.remove();
   $('#s'+n+'e').textContent=sk.e;$('#s'+n+'n').textContent=sk.n.split(' ')[0].toUpperCase().slice(0,8);$('#cd'+n).style.height=(100*(hero.cd[sk.idx]||0)/sk.cd)+'%';bt.classList.toggle('off',hero.sp<sk.sp);}
  $('#flC').textContent=hero.flask+'/'+S.flask;$('#bFlask').classList.toggle('off',hero.flask<=0);$('#potC').textContent=S.pots.red+S.pots.orange+S.pots.white+S.pots.blue;
- $('#bAuto').classList.toggle('on',!!S.auto);$('#bLock').classList.toggle('on',!!hero.lock);$('#bMenu').classList.toggle('notify',S.pts>0||S.skp>0);}
+ $('#bAuto').classList.toggle('on',!!S.auto);$('#bLock').classList.toggle('on',!!hero.lock);$('#bMenu').classList.toggle('notify',ptsLeft()>0||S.skp>0);}
 
 /* ================= MENU ================= */
 function openMenu(tab){if(tab)G.tab=tab;menuOpen=true;G.lightHeld=false;$('#menu').classList.add('show');renderMenu();sfx('ui');}
@@ -2457,10 +2479,13 @@ function renderMenu(){const st=G.st=stats(),C=C_();
    +`<div class="vit"><span class="vl">✨ EXP</span><div class="fgmeter"><div class="bar xp" style="width:${pc(S.exp,xpN)}%"></div><span>${S.exp.toLocaleString()} / ${xpN.toLocaleString()}</span></div></div>`
    +`<div class="chips"><span class="chip">🟩 Stamina ${st.msta}</span><span class="chip">🩸 Flask ${S.flask}</span><span class="chip">💰 ${S.zeny.toLocaleString()} z</span></div></div>`;
   const desc={str:'Melee attack power',agi:'Attack speed, crit, stamina',vit:'Max HP, defense, stamina',int:'Max SP, magic & skill power',dex:'Attack speed; Archer damage',luk:'Critical chance'};
-  h+=`<div class="card"><div class="ttl">Stat Points <span class="zen">${S.pts}</span></div><div class="chips">${STAT_JOB.map((v,i)=>`<span class="chip ${(S.job||0)===i?'on':(S.job||0)>i?'done':''}">${['1st','2nd','3rd','4th'][i]} Job · ${v}</span>`).join('')}</div><i class="ist">Stat cap per stat, unlocked by job advancement — now <b style="color:#ffd76a">${statMax()}</b> as ${jobName()}.</i><div class="igrid">`;
-  for(const k of ['str','agi','vit','int','dex','luk']){const mx=S.st[k]>=statMax();
-   h+=`<div class="icard ${mx?'q2':'q0'}"><span class="sl">${k.toUpperCase()}${mx?' · MAX':''}</span><span class="stv">${S.st[k]}</span><i class="ist">${desc[k]}</i>`
-    +`<div class="ia"><button data-a="stat" data-v="${k}" ${S.pts&&!mx?'':'disabled'}>+1</button><button data-a="stat5" data-v="${k}" ${S.pts>=1&&!mx?'':'disabled'}>+5</button></div></div>`;}
+  const P=ptsLeft(),rcost=S.lv*300;
+  h+=`<div class="card"><div class="ttl">Stat Points <span class="zen">${P.toLocaleString()}</span> <button data-a="streset" style="float:right" ${ptsSpent(S.st)?'':'disabled'}>↺ Respec · ${rcost.toLocaleString()}z</button></div><div class="chips">${STAT_JOB.map((v,i)=>`<span class="chip ${(S.job||0)===i?'on':(S.job||0)>i?'done':''}">${['1st','2nd','3rd','4th'][i]} Job · ${v}</span>`).join('')}</div><i class="ist">Cap <b style="color:#ffd76a">${statMax()}</b> as ${jobName()} · you gain <b>${STAT_PTS}</b> points per level · raising a stat costs more every 10 points · allocated points count <b>×${STAT_W}</b> in combat · speed-type gains soften past 99.</i><div class="igrid">`;
+  for(const k of ['str','agi','vit','int','dex','luk']){const v=S.st[k],mx=v>=statMax();
+   const c1=mx?0:stCost(v),n5=mx?0:Math.min(5,statMax()-v),c5=mx?0:stCostN(v,n5),d=mx?'':statDelta(k);
+   h+=`<div class="icard ${mx?'q2':'q0'}"><span class="sl">${k.toUpperCase()}${mx?' · MAX':''}</span><span class="stv">${v}</span><i class="ist">${desc[k]}</i>`
+    +(d?`<i class="ist stg">next: ${d}</i>`:'')
+    +`<div class="ia"><button data-a="stat" data-v="${k}" ${!mx&&P>=c1?'':'disabled'}>+1 · ${c1}p</button><button data-a="stat5" data-v="${k}" ${!mx&&n5>0&&P>=c5?'':'disabled'}>+${n5||5} · ${c5}p</button></div></div>`;}
   h+=`</div></div>${innHtml()}`;
   const cb=[['⚔️','ATK',st.atk],['🛡️','DEF',`${st.def} (-${Math.round(100-10000/(100+st.def))}%)`],['⚡','Speed',`×${st.aspdM.toFixed(2)}`],['✦','Crit',`${Math.round(st.crit*100)}%`],['🩸','Lifesteal',`${(st.ls*100).toFixed(1)}%`],['🔮','Spell Siphon',`${(st.sls*100).toFixed(1)}%`],['🛡️','Dmg taken',`-${Math.round(st.red*100)}%`],['💰','Zeny',`×${st.zenyM.toFixed(2)}`],['🟩','Sta regen',`${Math.round(st.staR)}/s`]];
   h+=`<div class="card"><div class="ttl">Combat</div><div class="cgrid">${cb.map(c=>`<div class="ctile"><span class="sl">${c[0]} ${c[1]}</span><span class="cv">${c[2]}</span></div>`).join('')}</div></div>`;
@@ -2652,7 +2677,16 @@ function menuAct(a,v,b){let reb=false;sfx('ui');
   case 'sksel':G.skSel=G.skSel===v?'':v;break;
   case 'skbar':{const i=+v,sl=+(b&&b.dataset.s||0);if(S.bar[sl]===i){S.bar[sl]=null;break;}const prev=S.bar.indexOf(i);if(prev>=0)S.bar[prev]=S.bar[sl];S.bar[sl]=i;toast((C_().sk[i].e||'')+' '+C_().sk[i].n+' → slot '+(sl+1),900);break;}
   case 'skreset':skReset();break;
-  case 'stat':if(S.pts>0&&S.st[v]<statMax()){S.st[v]++;S.pts--;}break;case 'stat5':{const n=Math.min(5,S.pts,statMax()-S.st[v]);if(n>0){S.st[v]+=n;S.pts-=n;}break;}
+  case 'stat':{if(S.st[v]<statMax()&&ptsLeft()>=stCost(S.st[v]))S.st[v]++;break;}
+  case 'stat5':{let i=0;while(i<5&&S.st[v]<statMax()&&ptsLeft()>=stCost(S.st[v])){S.st[v]++;i++;}break;}
+  case 'streset':{const cost=S.lv*300;
+   if(!ptsSpent(S.st)){toast('Nothing allocated yet',1200);break;}
+   if(S.zeny<cost){toast('Respec costs '+cost.toLocaleString()+' zeny',1500);break;}
+   ask(`↺ <b>Respec stats?</b><br>Every allocated point is refunded for <b>${cost.toLocaleString()}z</b>.`,['Respec','Cancel']).then(r=>{if(r!==0)return;
+    S.zeny-=cost;S.st=Object.assign({},CLASSES[S.cls].base);G.st=stats();
+    hero.hp=Math.min(hero.hp,G.st.mhp);hero.sp=Math.min(hero.sp,G.st.msp);
+    sfx('quest');toast('↺ Stats reset — '+ptsLeft().toLocaleString()+' points to spend',2200);save(true);renderMenu();});
+   break;}
   case 'equip':{const it=itemById(+v);if(it){const k=freeSlotFor(it);if(k){S.eq[k]=it.id;reb=true;}}break;}
   case 'unequip':S.eq[v]=null;reb=true;break;
   case 'autoeq':S.autoEq=S.autoEq?0:1;break;
@@ -3835,7 +3869,9 @@ function newGame(hk,ck,cust,df,fac){freshSave(hk,ck,cust,df);S.fac=fac;initHero(
 async function continueGame(s){S=s||loadSave();if(S&&S.diff==null)S.diff=2;if(S&&!facOf(S)){const r=await ask('Choose your Faction<br><small>It will show next to your name and on the leaderboard.</small>',FACTIONS.map(f=>f.e+' '+f.n));S.fac=FACTIONS[r].k;}if(!S)return;if(!S.q){toast('Old save is not compatible. Please start a new game.');S=null;return;}if(!S.sk){S.v=3;S.sk={};S.bar=[null,null,null,null];S.skp=S.lv;toast('Skill tree added: you have '+S.skp+' skill points to spend!',3000);}
  S.job=S.job||0;while(S.bar.length<6)S.bar.push(null);skSync();while(S.cleared.length<CHS.length)S.cleared.push(0);while(S.q.length<CHS.length)S.q.push({s:0,p:0,shr:[0,0,0]});
  if(S.done&&S.unlocked<20){S.unlocked=20;setTimeout(()=>banner('🌍 The New World is open!','Chapter 21 unlocked: open ☰ Menu → World Map',4200),2500);}
- if((S.v||3)<4){S.v=4;S.lv=Math.min(S.lv,LV_MAX);S.st=Object.assign({},CLASSES[S.cls].base);S.pts=S.lv-1;setTimeout(()=>ask('⚖️ <b>New stat rules</b><br>1 stat point per level · every stat caps at <b>99</b> · max level <b>594</b> (6 × 99).<br><br>Your stats were reset and you got <b>'+S.pts+' points</b> back. Open ☰ Menu → Status to assign them.',['OK']),1500);}initHero();loadChapter(S.ch);startGame();titleCard(S.ch);}
+ if((S.v||3)<4){S.v=4;S.lv=Math.min(S.lv,LV_MAX);S.st=Object.assign({},CLASSES[S.cls].base);S.pts=S.lv-1;setTimeout(()=>ask('⚖️ <b>New stat rules</b><br>1 stat point per level · every stat caps at <b>99</b> · max level <b>594</b> (6 × 99).<br><br>Your stats were reset and you got <b>'+S.pts+' points</b> back. Open ☰ Menu → Status to assign them.',['OK']),1500);}
+ if((S.v||4)<5){S.v=5;S.st=Object.assign({},CLASSES[S.cls].base);
+  setTimeout(()=>ask('⚖️ <b>New stat rules (RO-style)</b><br>You now gain <b>'+STAT_PTS+' points per level</b>, and raising a stat costs more as it grows (every 10 points, +1 cost).<br><br>Your stats were reset and every point refunded: <b>'+ptsLeft().toLocaleString()+' points</b> to spend in ☰ Menu → Status.',['OK']),3000);}initHero();loadChapter(S.ch);startGame();titleCard(S.ch);}
 function startEnding(kind){G.endKind=kind||'';G.mode='ending';showGameUI(false);G.mobs.forEach(removeMob);G.mobs=[];if(G.cage)world.remove(G.cage);
  const pm=buildHero(partnerKey(),partnerKey()==='L'?'knight':'priest',{w:{tier:2,rar:2,ref:0,slot:'w'},a:{tier:1,rar:1,ref:0,slot:'a'},s:{tier:1,rar:1,ref:0,slot:'s'}});
  hero.x=AR.x-.7;hero.z=AR.z;hero.face=Math.PI/2;hero.state='idle';hero.dead=false;pm.root.position.set(AR.x+.9,gY(AR.x+.9,AR.z),AR.z);pm.root.rotation.y=-Math.PI/2;world.add(pm.root);G.endPartner=pm;syncHero();sfx('ending');musicFor(0,false);
