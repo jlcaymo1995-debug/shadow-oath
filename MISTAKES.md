@@ -86,6 +86,14 @@ Keep entries short. Do not delete entries; mark them **Resolved** if the cause i
 - **Rule:** Put persistent controls next to a scroll container, not inside it
   (menu: `.mside` > `.mtabs` scroller + `.cls`). The `?status` scenario checks this.
 
+### 10. Screenshot camera overridden, scene polluted by earlier checks (2026-11-14)
+- **What happened:** Mire screenshots aimed the camera at Pell and a lantern, but the
+  pictures showed the hero in the boss arena surrounded by test web lanes.
+- **Real cause:** Rendering follows the hero, so setting `cam.position` was not reliable;
+  objects created by earlier checks in the same scenario were still in the world.
+- **Rule:** For screenshots, move the hero in front of the subject (camera sits south
+  of the hero, looking north), then `snapCam()`. Clear test leftovers first.
+
 ## How to check the game in real time (CDP)
 
 When a headless scenario is inconclusive, launch Chrome with

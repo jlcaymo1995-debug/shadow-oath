@@ -97,6 +97,7 @@ const MOBS={
  blob:{n:'Jellopop',m:'blob',col:0xff8fb1,s:1,spd:1.8,r:.6,hpM:.8,atkM:.8,loot:['Sticky Jelly','🫧']},
  bunny:{n:'Thornbunny',m:'bunny',col:0xd9c3a5,s:1,spd:2.8,r:.6,hpM:.85,atkM:.9,lunge:1,loot:['Bunny Fluff','🧶']},
  beetle:{n:'Field Beetle',m:'beetle',col:0x3b6b2a,s:1,spd:2.2,r:.7,hpM:1.2,atkM:1,aggro:1,shield:1,loot:['Beetle Shell','🪲']},
+ eggsac:{n:'Brood Eggs',m:'eggsac',col:0xd8d0b8,s:1,spd:0,r:1.1,hpM:.45,atkM:0,egg:1,loot:['Spider Silk','🕸️']},
  mushroom:{n:'Sporeling',m:'mushroom',col:0xc23b3b,s:1.1,spd:1.8,r:.7,hpM:1.1,atkM:1,loot:['Spore Cap','🍄']},
  wolf:{n:'Shade Wolf',m:'wolf',col:0x3a3f55,s:1.1,spd:4,r:.8,hpM:.95,atkM:1.1,aggro:1,lunge:1,loot:['Wolf Fang','🦷']},
  spider:{n:'Webweaver',m:'spider',col:0x2a2030,s:1,spd:2.6,r:.9,hpM:1,atkM:1,aggro:1,ranged:10,loot:['Spider Silk','🕸️']},
@@ -132,7 +133,7 @@ const MOBS={
 const BOSSES={
  boar:{n:'Warthog King',m:'boar',col:0x7a4a2a,s:2.4,spd:3.4,r:2,sp:['slam','charge','combo'],roar:'grunt'},
  treant:{n:'Elder Treant',m:'treant',col:0x5a3a22,s:1.5,spd:2,r:2.3,sp:['slam','nova','roots'],roar:'deep'},
- spiderq:{n:'Broodmother',m:'spider',col:0x1a1020,s:2.6,spd:3,r:2.3,sp:['slam','bolts','combo','nova'],roar:'screech'},
+ spiderq:{n:'Broodmother',m:'spider',col:0x1a1020,s:2.6,spd:3,r:2.3,sp:['slam','bolts','combo','nova','webs','eggs'],roar:'screech',lantern:1},
  towerknight:{n:'Tower Knight Aldric',m:'bigknight',col:0x4a4a58,s:2.2,spd:2.6,r:1.9,sp:['sweep','slam','combo','charge'],shield:1,roar:'deep'},
  scorpionking:{n:'Scorpion Emperor',m:'scorpion',col:0x8a4a1a,s:2.6,spd:3,r:2.3,sp:['combo','slam','bolts','sweep'],roar:'screech'},
  pharaoh:{n:'Sand Pharaoh Nekhet',m:'pharaoh',col:0xe8dcc0,s:2.3,spd:2.6,r:2,sp:['slam','nova','combo','bolts','summon'],roar:'deep'},
@@ -219,7 +220,7 @@ const CHS=[
  intro:[['N','Fog swallows the path. Blue lights drift between the dead trees, and some of them are not lanterns.'],['PE','...{H}... follow the lights...']],
  qs:[['Q','You hear it too, don\'t you? The Broodmother sings to lost travellers and eats what answers.'],['Q','The three great lanterns kept her at bay for a hundred years. Relight them, and the mist to her nest will open. Stand at each lantern and hold still while it kindles.']],
  qp:[['Q','The lanterns are dark. Find them by their stone pillars and kindle each one.']],
- qd:[['Q','Light returns to the mire! The Broodmother will be waiting beyond the mist. Her webs slow you. Keep moving.']],
+ qd:[['Q','Light returns to the mire! Follow the warm stones; they will always lead you back to safe ground.'],['Q','The Broodmother waits beyond the mist. She lays her webs in long lanes: step out of them or roll through. And break her eggs before they hatch.']],
  outro:[['N','In the Broodmother\'s nest, a torn piece of a map: the Ruined Watchtower, circled in dark ink.'],['H','That\'s where they\'re taking {P}.']]},
 {name:'Ruined Watchtower',b:'watchtower',mobs:['hollow','archer','wolf'],boss:'towerknight',npc:{n:'Captain Dorne',ic:'⚔️',hat:'helm',col:0x7a2a2a},
  quest:{t:'survive',time:60,title:'Hold the Gate'},
@@ -1245,8 +1246,25 @@ const MB={
   const legs=[];for(let i=0;i<6;i++){const s=i<3?-1:1,z=(i%3-1)*.4;const l=grp(s*.5,.35,z);const m=mesh(BOX(.5,.06,.06),mat(0x1a1a1a),s*.22,-.12,0);m.rotation.z=s*.5;l.add(m);body.add(l);legs.push(l);}return {root,body,legs,bug:1};},
  mushroom:d=>{const root=new T.Group(),body=new T.Group();root.add(body);body.add(mesh(CYL(.25,.32,.6,8),mat(0xe8dcc0),0,.3,0));body.add(mesh(HEMI(.6),mat(d.col),0,.55,0));for(let i=0;i<6;i++){const a=i/6*Math.PI*2;body.add(mesh(SPH(.08,5,4),basic(0xffffff),Math.sin(a)*.4,.8,Math.cos(a)*.4));}eyes(body,.38,.25,.1,.05);return {root,body,hop:1};},
  wolf:d=>quad({col:d.col,b:[.6,.6,1.3],leg:.55,hs:.55,snout:1,ears:'cone',tail:[.15,.7],eye:0xff4040,mane:1}),
- spider:d=>{const root=new T.Group(),body=new T.Group();root.add(body);const M=mat(d.col);body.add(mesh(SPH(.6,10,8),M,0,.8,-.5));body.add(mesh(SPH(.38,8,6),M,0,.7,.3));for(let i=0;i<6;i++)body.add(mesh(SPH(.05,5,4),basic(0xff2020),(i%3-1)*.1,.85+(i>2?.08:0),.65));
-  body.add(mesh(SPH(.15,6,5),mat(0x8a1a1a),0,1.2,-.6));const legs=[];for(let i=0;i<8;i++){const s=i<4?-1:1,z=(i%4)*.22-.3;const l=grp(s*.3,.75,z);const m=mesh(BOX(1.1,.06,.06),M,s*.5,.15,0);m.rotation.z=-s*.5;l.add(m);const m2=mesh(BOX(.06,.8,.06),M,s*.95,-.3,0);l.add(m2);body.add(l);legs.push(l);}return {root,body,legs,bug:1};},
+ spider:d=>{const root=new T.Group(),body=new T.Group();root.add(body);const M=mat(d.col);let lant=null;
+  if(d.lantern){// Broodmother: a lantern-like abdomen. Ribbed cage over a glowing sac that lures prey.
+   const glow=0x8ad8ff,g=grp(0,.95,-.62);body.add(g);const sac=mesh(SPH(.62,12,10),basic(glow,{transparent:true,opacity:.55}),0,0,0);sac.scale.set(1,1.05,1.15);g.add(sac);
+   const core=glowSprite(glow,2.6);g.add(core);const rib=mat(0x2a1a30,{metalness:.3,roughness:.5});
+   for(let i=0;i<6;i++){const r=mesh(TOR(.64,.035),rib);r.rotation.y=i/6*Math.PI;r.scale.set(1,1.05,1.15);g.add(r);}
+   const cap=mesh(CONE(.3,.32,6),rib,0,.66,0);g.add(cap);const hook=mesh(TOR(.1,.025),rib,0,.86,0);g.add(hook);lant={g,sac,core};}
+  else body.add(mesh(SPH(.6,10,8),M,0,.8,-.5));body.add(mesh(SPH(.38,8,6),M,0,.7,.3));for(let i=0;i<6;i++)body.add(mesh(SPH(.05,5,4),basic(0xff2020),(i%3-1)*.1,.85+(i>2?.08:0),.65));
+  body.add(mesh(SPH(.15,6,5),mat(0x8a1a1a),0,1.2,-.6));const legs=[];for(let i=0;i<8;i++){const s=i<4?-1:1,z=(i%4)*.22-.3;const l=grp(s*.3,.75,z);const m=mesh(BOX(1.1,.06,.06),M,s*.5,.15,0);m.rotation.z=-s*.5;l.add(m);const m2=mesh(BOX(.06,.8,.06),M,s*.95,-.3,0);l.add(m2);body.add(l);legs.push(l);}
+  if(lant)return {root,body,legs,bug:1,lantern:lant,anim:(t,m)=>{const cast=m.state==='cast'||m.state==='windup',p2=m.phase===2;
+   const pulse=1+Math.sin(t*(p2?6:2.5))*.12+(cast?.35:0);lant.core.scale.setScalar(2.6*pulse);lant.sac.material.opacity=.45+(cast?.3:0)+Math.sin(t*2.5)*.08;
+   const col=p2?0xff7a5a:0x8ad8ff;if(lant.sac.material.color.getHex()!==col){lant.sac.material.color.setHex(col);lant.core.material.color.setHex(col);}
+   lant.g.rotation.z=Math.sin(t*1.3)*.08;}};
+  return {root,body,legs,bug:1};},
+ eggsac:d=>{const root=new T.Group(),body=new T.Group();root.add(body);const shell=basic(0xe8e0c8,{transparent:true,opacity:.85}),web=basic(0xf4f0ff,{transparent:true,opacity:.6});
+  const eggs=[[0,.45,0,.5],[.45,.32,.2,.36],[-.4,.3,.25,.38],[.15,.3,-.42,.34],[-.25,.85,-.1,.3]].map(([x,y,z,r])=>{const e=mesh(SPH(r,10,8),shell,x,y,z);e.scale.y=1.2;body.add(e);return e;});
+  const inner=glowSprite(0x9affc8,1.6);inner.position.y=.5;body.add(inner);
+  for(let i=0;i<5;i++){const a=i/5*Math.PI*2,w=mesh(BOX(.02,1.3,.02),web,Math.sin(a)*.5,.6,Math.cos(a)*.5);w.rotation.set(Math.cos(a)*.5,0,Math.sin(a)*.5);body.add(w);}
+  return {root,body,anim:(t,m)=>{const left=m.hatchT??EGG_HATCH-((G.t-(m.bornT??(m.bornT=G.t)))),near=clamp(1-left/EGG_HATCH,0,1);
+   eggs.forEach((e,i)=>{const k=1+Math.sin(t*(3+near*9)+i)*(.03+near*.06);e.scale.set(k,1.2*k,k);});inner.material.opacity=.35+near*.65;body.rotation.z=near>.7?Math.sin(t*30)*.04:0;}};},
  wisp:d=>{const root=new T.Group(),body=grp(0,1.4,0);root.add(body);body.add(mesh(SPH(.32,10,8),basic(d.col)));body.add(glowSprite(d.col,2.4));for(let i=0;i<4;i++){const s=mesh(SPH(.1,6,5),basic(d.col),0,-.3-i*.2,-.2-i*.15);body.add(s);}eyes(body,.05,.28,.1,.05,0x111133);return {root,body,fly:1};},
  soldier:d=>humanoid({col:d.col,col2:new T.Color(d.col).multiplyScalar(.6).getHex(),skin:d.robe?0x8a7a6a:0x5a5a60,eye:d.em?0xd06aff:0xffd040,helm:d.robe?0:1,hood:d.robe?1:0,weapon:d.bow?'bow':'sword',shieldM:d.shield,shieldCol:d.col,em:d.em,robe:d.robe}),
  skeleton:d=>humanoid({col:d.col,col2:d.col,skin:d.col,skull:1,eye:0xff6040,weapon:'sword',armSkin:1}),
@@ -1318,6 +1336,14 @@ function buildNPC(n){const o=humanoid({col:n.col,col2:new T.Color(n.col).multipl
   const thread=mesh(CYL(.008,.008,.5,3),silk,.42,.78,.1);thread.rotation.z=.3;o.root.add(thread);
   // longbow on her back
   const bow=mesh(new T.TorusGeometry(.62,.028,5,18,Math.PI),wood,.04,1.4,-.3);bow.rotation.z=-Math.PI/2+.25;o.root.add(bow);const str=mesh(BOX(.01,1.22,.01),silk,-.1,1.38,-.3);str.rotation.z=.25;o.root.add(str);o.root.userData.mira=1;}
+ if(n.n==='Pell the Lantern Keeper'){const wood=mat(0x5a4632),iron=mat(0x2e2a26,{metalness:.5,roughness:.5});
+  // a long pole over the right shoulder, the lantern hanging from its tip
+  const pole=grp(.28,1.55,.05);pole.rotation.set(-.5,0,-.35);o.root.add(pole);pole.add(mesh(CYL(.035,.045,2.6,6),wood,0,1.1,0));
+  const hang=grp(0,2.35,0);pole.add(hang);const lamp=grp(0,-.42,0);hang.add(lamp);lamp.add(mesh(CYL(.005,.005,.36,3),iron,0,.22,0));
+  lamp.add(mesh(CYL(.16,.18,.05,6),iron,0,.02,0),mesh(CONE(.2,.16,6),iron,0,.26,0));
+  for(let i=0;i<4;i++){const a=i/4*Math.PI*2+.4;lamp.add(mesh(BOX(.025,.42,.025),iron,Math.sin(a)*.15,.02,Math.cos(a)*.15));}
+  const fl=mesh(SPH(.09,6,5),basic(0xffc860),0,.02,0);lamp.add(fl);const gl=glowSprite(0xffb050,2.2);gl.position.y=.02;lamp.add(gl);
+  o.body.rotation.x=.14;o.root.userData.pell={hang,gl,body:o.body};}
  if(n.n==='Elder Rowan'){const staff=grp(.65,0,0);staff.add(mesh(CYL(.055,.08,2.5,6),mat(0x61472e),0,1.25,0));staff.add(mesh(TOR(.22,.055),mat(0x61472e),.15,2.5,0));staff.add(mesh(OCT(.12),basic(0xffd76a),.32,2.12,0));o.root.add(staff);}
  if(n.voice){o.root.traverse(c=>{if(c.isMesh){c.material=c.material.clone();c.material.transparent=true;c.material.opacity=.45;if(c.material.isMeshStandardMaterial){c.material.emissive=new T.Color(0xff8ac0);c.material.emissiveIntensity=.5;}}});o.body.add(glowSprite(0xffb0d8,3).translateY(1.2));}
  const mk=mesh(OCT(.16),basic(0xffd76a),0,2.9,0);mk.castShadow=false;o.root.add(mk);o.mark=mk;o.root.traverse(c=>{if(c.isMesh)c.castShadow=true;});addShadow(o.root,.6);return o;}
@@ -1412,7 +1438,7 @@ function buildWorld(c){
  // particles
  const n2=Q().parts*.8|0,pp=new Float32Array(n2*3);for(let i=0;i<n2;i++){pp[i*3]=rnd(-35,35);pp[i*3+1]=rnd(0,14);pp[i*3+2]=rnd(-35,35);}
  const pgeo=new T.BufferGeometry();pgeo.setAttribute('position',new T.BufferAttribute(pp,3));const pts=new T.Points(pgeo,new T.PointsMaterial({color:b.pc,size:b.ps,map:GLOW_T,transparent:true,depthWrite:false,blending:b.glowP?T.AdditiveBlending:T.NormalBlending,opacity:.85}));pts.frustumCulled=false;world.add(pts);G.parts=pts;
- fieldLandmarks(c);woodsLandmarks(c);
+ fieldLandmarks(c);woodsLandmarks(c);mireLandmarks(c);
  // lock marker
  G.lockMk=mesh(RING(.9,1.05),basic(0xff3030,{transparent:true,opacity:.9,side:T.DoubleSide,depthWrite:false}));G.lockMk.rotation.x=-Math.PI/2;G.lockMk.visible=false;G.lockMk.castShadow=false;world.add(G.lockMk);
  G.lockDia=mesh(OCT(.18),basic(0xff3030));G.lockDia.visible=false;G.lockDia.castShadow=false;world.add(G.lockDia);
@@ -1866,7 +1892,53 @@ function updateWoods(dt){
  if(NET.on&&!NET.host)return;
  const b=G.mobs.find(m=>m.boss&&!m.dead&&m.d.m==='treant');if(!b||b.stun>0||b.jump)return;
  G.snares.forEach((s,i)=>{if(s.armed&&Math.hypot(b.x-s.x,b.z-s.z)<SNARE_R)hEmit({y:'sn',id:b.id,i},snareLocal);});}
-function bossHint(c){if(c===1&&G.bossFight&&!G.dg&&G.snares&&G.snares.length)banner("Mira's snares","Lure the Treant onto the glowing silk to bind it",3200);}
+/* ===== Mire of Lanterns (Phase 5 Pass B) =====
+   Lantern islands mark the route: each relit lantern turns its island and the
+   stepping stones from the grace warm gold, and every lantern pushes the fog back.
+   Broodmother: web lanes that slow movement, and egg clusters that hatch
+   spiderlings unless destroyed. Host (or solo) decides; clients receive `wl`. */
+const EGG_HATCH=12,EGG_MAX=4,WEB_DUR=8,WEB_ARM=.8,WEB_W=2.4;
+function mireLandmarks(c){G.webLanes=[];G.webbed=false;G.mire=null;if(c!==2||G.dg||!G.shr||!G.shr.length)return;
+ const isles=[],stones=[];const moss=mat(0x3a5a3a),rock=mat(0x4a5450);
+ G.shr.forEach((s,i)=>{const g=grp(s.x,gY(s.x,s.z)-.15,s.z);g.add(mesh(CYL(3.2,3.6,.5,10),rock,0,0,0));g.add(mesh(CYL(3.1,3.1,.06,10),moss,0,.27,0));
+  // lantern housing around the shrine flame: posts, roof and base plate
+  const cage=grp(0,2.65,0);g.add(cage);const iron=mat(0x2a2a30,{metalness:.5,roughness:.45});
+  for(let k=0;k<4;k++){const a=k/4*Math.PI*2+.4;cage.add(mesh(BOX(.06,.9,.06),iron,Math.sin(a)*.42,0,Math.cos(a)*.42));}
+  cage.add(mesh(CONE(.6,.45,4),iron,0,.66,0));cage.add(mesh(CYL(.45,.45,.06,4),iron,0,-.45,0));
+  const halo=mesh(RING(3.3,3.6),basic(0xffc860,{transparent:true,opacity:0,side:T.DoubleSide,depthWrite:false}),0,.32,0);halo.rotation.x=-Math.PI/2;g.add(halo);
+  world.add(g);isles.push({g,halo});
+  // stepping stones with wisps, from the grace toward this lantern
+  const n=7;for(let k=1;k<=n;k++){const f=k/(n+1),x=s.x*f+Math.sin(k*1.7+i)*1.2,z=s.z*f+Math.cos(k*1.3+i)*1.2;
+   const st=mesh(CYL(.7,.8,.25,7),rock,x,gY(x,z)+.05,z);world.add(st);const w=glowSprite(0x8ad8ff,1.1);w.position.set(x,gY(x,z)+.6,z);world.add(w);stones.push({i,w,st});}});
+ G.mire={isles,stones,fog0:[scene.fog.near,scene.fog.far],lit:-1};applyMireLight();}
+function mireLit(){const qs=S.q[2];if(S.cleared[2]||(qs&&qs.s>=2))return G.shr.map(()=>1);return G.shr.map((_,i)=>qs&&qs.shr&&qs.shr[i]?1:0);}
+function applyMireLight(){const M=G.mire;if(!M)return;const lit=mireLit(),n=lit.reduce((a,b)=>a+b,0);
+ M.isles.forEach((o,i)=>{o.halo.material.opacity=lit[i]?.55:0;const so=G.shrObj&&G.shrObj[i];if(so&&lit[i]){so.flm.visible=true;so.fl.material.opacity=1;so.flm.material.color.setHex(0xffc860);so.fl.material.color.setHex(0xffb050);}});
+ M.stones.forEach(s=>{s.w.material.color.setHex(lit[s.i]?0xffc860:0x8ad8ff);s.w.material.opacity=lit[s.i]?.9:.35;});
+ scene.fog.near=M.fog0[0]+n*5;scene.fog.far=M.fog0[1]+n*22;M.lit=n;}
+function spawnEggs(b,n){if(NET.on&&!NET.host)return 0;const alive=G.mobs.filter(m=>!m.dead&&m.d.egg).length;let made=0;
+ for(let i=0;i<Math.min(n,EGG_MAX-alive);i++){const a=rnd(0,6.28),r=rnd(5,AR.r-3),x=AR.x+Math.cos(a)*r,z=AR.z+Math.sin(a)*r;
+  const m=mkMob(mobDef('eggsac',b.d.lv),x,z,false);m.add=1;m.hatchT=EGG_HATCH;m.face=rnd(0,6.28);G.mobs.push(m);fxRing(x,z,2,0x9affc8,.5);made++;}
+ if(made&&dxz(hero,b)<40)banner('Brood eggs!','Break the egg clusters before they hatch',2200);return made;}
+function eggTick(m,dt){m.hatchT-=dt;if(m.hatchT>0)return;m.dead=true;m.deadT=.9;m.hatched=1;
+ const d=mobDef('spider',m.d.lv);
+ for(let k=0;k<2;k++){const a=rnd(0,6.28),s=mkMob(d,m.x+Math.cos(a)*1.4,m.z+Math.sin(a)*1.4,false);s.agg=true;s.add=1;s.hp=s.mhp=Math.round(s.mhp*.5);G.mobs.push(s);}
+ PS.burst(m.x,gY(m.x,m.z)+.6,m.z,20,0x9affc8,{sp:4,up:3});if(dxz(hero,m)<25)txt(m.x,gY(m.x,m.z)+1.8,m.z,'HATCHED!','#9affc8',true);}
+function webLaneLocal(e){if(!G.webLanes)G.webLanes=[];const mx=(e.ax+e.bx)/2,mz=(e.az+e.bz)/2,dx=e.bx-e.ax,dz=e.bz-e.az,L=Math.hypot(dx,dz)||1;
+ const g=grp(mx,gY(mx,mz)+.06,mz);g.rotation.y=Math.atan2(-dz,dx);const silk=basic(0xf4f0ff,{transparent:true,opacity:.2,side:T.DoubleSide,depthWrite:false});
+ g.add(mesh(BOX(L,.02,e.w),silk));const th=basic(0xffffff,{transparent:true,opacity:.2,depthWrite:false});
+ for(let k=-1;k<=1;k++)g.add(mesh(BOX(L,.03,.05),th,0,.03,k*e.w*.35));
+ for(let k=0;k<Math.floor(L/1.6);k++){const c=mesh(BOX(.05,.03,e.w),th,-L/2+.8+k*1.6,.03,0);c.rotation.y=.4*(k%2?1:-1);g.add(c);}
+ world.add(g);G.webLanes.push({ax:e.ax,az:e.az,bx:e.bx,bz:e.bz,w:e.w,arm:G.t+WEB_ARM,end:G.t+e.dur,g,silk,th});sfx('ebolt');}
+function inWebs(){if(!G.webLanes||hero.state==='roll')return false;return G.webLanes.some(l=>G.t>=l.arm&&G.t<l.end&&segDist(hero.x,hero.z,l.ax,l.az,l.bx,l.bz)<l.w/2);}
+function updateMire(dt){
+ if(G.webLanes&&G.webLanes.length){for(const l of G.webLanes){const armed=G.t>=l.arm,left=l.end-G.t;const op=armed?Math.min(.75,left/.6*.75):.2+.2*Math.sin(G.t*20);l.silk.opacity=Math.max(0,op*.25);l.th.opacity=Math.max(0,op);if(left<=0)world.remove(l.g);}G.webLanes=G.webLanes.filter(l=>G.t<l.end);}
+ const w=inWebs();if(w&&!G.webbed&&!hero.dead)txt(hero.x,hero.y+2.4,hero.z,'WEBBED','#f4f0ff',false);G.webbed=w;
+ const P=G.npc&&G.npc.m.root.userData.pell;if(P){P.hang.rotation.z=Math.sin(G.t*1.6)*.18;P.hang.rotation.x=Math.cos(G.t*1.1)*.08;P.gl.material.opacity=.75+Math.sin(G.t*9)*.08+Math.sin(G.t*23)*.05;P.body.rotation.y=Math.sin(G.t*.5)*.35*(Math.sin(G.t*.23)>0?1:.2);}
+ if(G.mire){G.mire.stones.forEach((s,k)=>{s.w.position.y=s.st.position.y+.55+Math.sin(G.t*1.5+k)*.12;});
+  const n=mireLit().reduce((a,b)=>a+b,0);if(n!==G.mire.lit)applyMireLight();}}
+function bossHint(c){if(c===1&&G.bossFight&&!G.dg&&G.snares&&G.snares.length)banner("Mira's snares","Lure the Treant onto the glowing silk to bind it",3200);
+ if(c===2&&G.bossFight&&!G.dg)banner('The Broodmother','Her webs slow you · break her egg clusters before they hatch',3200);}
 function questReady(){sfx('quest');banner('Quest objective complete','Return to '+fmt(CHS[S.ch].npc.n),2600);}
 function questText(){if(prologueActive())return S.fields.prologue==='meet'?['Before the oath','Walk to '+partnerName()+' near the grace']:['Our promise','Follow '+partnerName()+' to the oath tree west of the grace'];const c=S.ch,q=CHS[c].quest,qs=S.q[c];if(c===0&&!G.dg&&G.bossFight)return ['Warthog King','Bait a charge into a gold-marked stone, then dodge.'];if(c===0&&S.cleared[0])return ['Verdant Fields restored','Take the north road to Whispering Woods'];if(S.cleared[c])return ['Chapter cleared','Free roam · boss can be fought again at the mist'];if(qs.s===0)return ['❗ Talk to '+fmt(CHS[c].npc.n),'at the Site of Grace'];if(qs.s===3)return ['Mist is open','Traverse the mist to face the boss'];if(qs.s===2)return [q.title,'✓ Return to '+fmt(CHS[c].npc.n)];
  if(guidedFields()&&qs.s===1)return fieldObjective();
@@ -1907,7 +1979,7 @@ function updateQuests(dt){const c=S.ch,qs=S.q[c],q=CHS[c].quest;
   $('#timer').style.display='block';$('#timer').textContent=(near?'⏳ ':'⚠ Return to the beacon! ')+Math.ceil(Math.max(0,sv.left))+'s';
   if(sv.left<=0){G.surv=null;$('#timer').style.display='none';qs.s=2;questReady();G.mobs.filter(m=>m.wave&&!m.dead).forEach(m=>{m.agg=false;});musicFor(c,false);save();}}
  else $('#timer').style.display='none';
- for(let i=0;i<G.shrObj.length;i++){const o=G.shrObj[i];if(qs.shr[i]){o.flm.position.y=2.5+Math.sin(G.t*4+i)*.1;}}
+ for(let i=0;i<G.shrObj.length;i++){const o=G.shrObj[i];if(qs.shr[i]){if(!o.flm.visible){o.flm.visible=true;o.fl.material.opacity=1;o.ring.material.opacity=.8;}o.flm.position.y=2.5+Math.sin(G.t*4+i)*.1;}}
  if(G.beaconObj){G.beaconObj.fl.material.opacity=G.surv?.9+.1*Math.sin(G.t*8):.3;}
  if(G.npc){G.npc.m.mark.position.y=2.9+Math.sin(G.t*3)*.15;G.npc.m.mark.rotation.y+=dt*2;G.npc.m.mark.visible=!S.cleared[c]&&(qs.s===0||qs.s===2);G.npc.m.mark.material.color.setHex(qs.s===2?0x8fd3ff:0xffd76a);}}
 
@@ -2365,7 +2437,7 @@ function update(dt){
   else if(hero.dest){const dx=hero.dest.x-hero.x,dz=hero.dest.z-hero.z,d=Math.hypot(dx,dz);if(d<.4)hero.dest=null;else{inp.x=dx/d;inp.z=dz/d;mag=1;}}
   else if(S.auto&&!G.chan){const t=hero.lock||nearest(40);if(t){autoAI(t);mag=Math.hypot(inp.x,inp.z);}}
   hero.actT+=dt;const s=hero.state;hero.iframe=false;hero.parryOn=false;let mv=0;const ox=hero.x,oz=hero.z;
-  if(s==='idle'||s==='move'){if(mag>.12){const sp=st.spd*Math.min(1,mag*1.3)*(G.rooted?ROOT_SLOW:1);hero.x+=inp.x*sp*dt;hero.z+=inp.z*sp*dt;hero.face=hero.lock&&!hero.lock.dead?Math.atan2(hero.lock.x-hero.x,hero.lock.z-hero.z):turnTo(hero.face,Math.atan2(inp.x,inp.z),dt*14);hero.state='move';mv=mag;}else hero.state='idle';
+  if(s==='idle'||s==='move'){if(mag>.12){const sp=st.spd*Math.min(1,mag*1.3)*(G.rooted||G.webbed?ROOT_SLOW:1);hero.x+=inp.x*sp*dt;hero.z+=inp.z*sp*dt;hero.face=hero.lock&&!hero.lock.dead?Math.atan2(hero.lock.x-hero.x,hero.lock.z-hero.z):turnTo(hero.face,Math.atan2(inp.x,inp.z),dt*14);hero.state='move';mv=mag;}else hero.state='idle';
    if(G.lightHeld)lightAttack();}
   else if(s==='light'||s==='heavy'){const hf=s==='light'?.42:.6;
    if(!hero.hitDone&&hero.actT>=hero.actDur*hf){hero.hitDone=true;doAttackHit(s);}
@@ -2389,7 +2461,7 @@ function update(dt){
  }
  // spawns
  const alive=G.mobs.filter(m=>!m.dead&&!m.boss&&!m.add&&!m.wave).length;G.spawnT-=dt;if(!isPuppet()&&alive<mobMax()&&G.spawnT<=0&&!G.bossFight){spawnMob(true);if(mobMax()-alive>4)spawnMob(false);G.spawnT=2.5;}
- if(isPuppet())puppetMobs(dt);else updateMobs(dt,st);updateProjs(dt);updateWoods(dt);if(G.dg)dgTick(dt);if(isPuppet()){ralliesTick(dt);pullTick(dt);sealVis();}else coopTick(dt);updateDrops(dt);updateFx(dt);PS.update(dt);
+ if(isPuppet())puppetMobs(dt);else updateMobs(dt,st);updateProjs(dt);updateWoods(dt);updateMire(dt);if(G.dg)dgTick(dt);if(isPuppet()){ralliesTick(dt);pullTick(dt);sealVis();}else coopTick(dt);updateDrops(dt);updateFx(dt);PS.update(dt);
  G.mobs=G.mobs.filter(m=>{if(m.dead&&m.deadT<=0){removeMob(m);return false;}return true;});
  if(G.parts){const b=B[ch.b];const p=G.parts.geometry.attributes.position,a=p.array,v=b.pv;for(let i=0;i<a.length;i+=3){a[i]+=v[0]*dt+Math.sin(G.t+i)*.01;a[i+1]+=v[1]*dt;a[i+2]+=v[2]*dt;
   if(a[i]-hero.x>35)a[i]-=70;if(a[i]-hero.x<-35)a[i]+=70;if(a[i+2]-hero.z>35)a[i+2]-=70;if(a[i+2]-hero.z<-35)a[i+2]+=70;if(a[i+1]<0)a[i+1]+=14;if(a[i+1]>14)a[i+1]-=14;}p.needsUpdate=true;}
@@ -2403,13 +2475,14 @@ function updateMobs(dt,st){
  for(const m of G.mobs){const d=m.d,M=m.mdl;
   if(m.dead){m.deadT-=dt;const p=1-m.deadT/.9;M.root.scale.setScalar((d.s||1)*(1-p*.6));M.root.position.y=gY(m.x,m.z)-p*.6;M.body.rotation.z=p*1.2;continue;}
   m.flash=Math.max(0,m.flash-dt);m.stag-=dt;m.stun-=dt;if(m.snareT>0)m.snareT-=dt;m.ripT-=dt;m.cd-=dt;m.gb-=dt;m.lunge=Math.max(0,m.lunge-dt);m.moving=false;
+  if(d.egg){eggTick(m,dt);animMob(m,dt);continue;}
   const tg=tgtFor(m);const dh=dxz(m,tg);
   if(m.stag>0||m.stun>0){animMob(m,dt);continue;}
   if(!tg.dead&&(d.aggro||m.boss)&&dh<(m.boss?40:11))m.agg=true;
   if(tg.dead||(!m.boss&&!m.add&&!m.wave&&dh>30))m.agg=false;
   if(G.bossFight&&m.boss)m.agg=true;
   if(!m.boss&&!m.add&&!m.wave&&dh>58&&!m.agg){m.x=clamp(tg.x+rnd(-30,30),-58,58);m.z=clamp(tg.z+rnd(-30,30),-58,58);if(Math.hypot(m.x-tg.x,m.z-tg.z)<14)m.z+=16;}
-  if(m.boss&&m.phase===1&&m.hp<m.mhp*.5){m.phase=2;if(NET.on)netEmit({y:'p2',n:d.n});if(G.bossFight||!NET.on){banner(d.n+' grows furious!',d.key==='boar'&&G.oathStones?.length?'Phase 2 · repeated charges. Use the oath stones!':'Phase 2 · faster, longer combos',2600);G.shake=.5;musicPhase2();}fxRing(m.x,m.z,8,0xff3a3a,.8);sfx('roar_'+(d.roar||'deep'));if(d.final||d.key==='pharaoh'||d.key==='lich')spawnAdds(m,2);}
+  if(m.boss&&m.phase===1&&m.hp<m.mhp*.5){m.phase=2;if(NET.on)netEmit({y:'p2',n:d.n});if(G.bossFight||!NET.on){banner(d.n+' grows furious!',d.key==='boar'&&G.oathStones?.length?'Phase 2 · repeated charges. Use the oath stones!':'Phase 2 · faster, longer combos',2600);G.shake=.5;musicPhase2();}fxRing(m.x,m.z,8,0xff3a3a,.8);sfx('roar_'+(d.roar||'deep'));if(d.final||d.key==='pharaoh'||d.key==='lich')spawnAdds(m,2);if(d.key==='spiderq')spawnEggs(m,3);}
   const spdM=m.phase===2?1.3:1;
   if(m.state==='windup'){m.wT-=dt;const p=1-m.wT/m.wu;M.tel.material.opacity=.25+.6*p;M.tel.scale.setScalar(d.r*1.7/(d.s||1)*(.4+.6*p));
    if(m.wT>m.wu*.35)m.face=turnTo(m.face,Math.atan2(tg.x-m.x,tg.z-m.z),dt*8);
@@ -2429,7 +2502,7 @@ function updateMobs(dt,st){
   if(m.boss||G.bossFight){const dx=m.x-AR.x,dz=m.z-AR.z,dd=Math.hypot(dx,dz);if(m.boss&&dd>AR.r-1){m.x=AR.x+dx/dd*(AR.r-1);m.z=AR.z+dz/dd*(AR.r-1);}}
   animMob(m,dt);
  }
- const ms=G.mobs;for(let i=0;i<ms.length;i++){const a=ms[i];if(a.dead)continue;for(let j=i+1;j<ms.length;j++){const b=ms[j];if(b.dead)continue;const dx=b.x-a.x,dz=b.z-a.z,d=Math.hypot(dx,dz)||1,mn=(a.r+b.r)*.9;if(d<mn){const p=(mn-d)/2/d;const wa=a.boss?.1:1,wb=b.boss?.1:1;a.x-=dx*p*wa;a.z-=dz*p*wa;b.x+=dx*p*wb;b.z+=dz*p*wb;}}
+ const ms=G.mobs;for(let i=0;i<ms.length;i++){const a=ms[i];if(a.dead)continue;for(let j=i+1;j<ms.length;j++){const b=ms[j];if(b.dead)continue;const dx=b.x-a.x,dz=b.z-a.z,d=Math.hypot(dx,dz)||1,mn=(a.r+b.r)*.9;if(d<mn){const p=(mn-d)/2/d;const wa=a.d.egg?0:a.boss?.1:1,wb=b.d.egg?0:b.boss?.1:1;a.x-=dx*p*wa;a.z-=dz*p*wa;b.x+=dx*p*wb;b.z+=dz*p*wb;}}
   if(!hero.dead){const dx=hero.x-a.x,dz=hero.z-a.z,d=Math.hypot(dx,dz)||1,mn=a.r+.45;if(d<mn&&hero.state!=='roll'){const p=(mn-d)/d;hero.x+=dx*p;hero.z+=dz*p;}}}
 }
 function startWind(m,t){m.state='windup';m.wT=m.wu=t;m.flashed=0;}
@@ -2467,6 +2540,10 @@ function bossSpecial(m,tg){const d=m.d,list=d.sp;tg=tg||tgtFor(m);let k=list[ri(
  else if(k==='bolts'){m.rT=1.3;sfx('ebolt');const n=m.phase===2?7:5;for(let i=0;i<n;i++){const a=Math.atan2(tg.x-m.x,tg.z-m.z)+(i-(n-1)/2)*.22;hEmit({y:'pj',id:m.id,x:r1(m.x),z:r1(m.z),yo:2,vx:Math.sin(a)*12,vz:Math.cos(a)*12,life:2.2,dmg:Math.round(d.atk*1.1),col:0xb06aff,big:1},projLocal);}}
  else if(k==='meteor'){m.rT=2.2;sfx('charge');for(let i=0;i<7;i++){const x=tg.x+rnd(-5,5),z=tg.z+rnd(-5,5);setTimeout(()=>{if(m.dead)return;hEmit({y:'mt',id:m.id,x:r1(x),z:r1(z),r:2.5,dur:1.1,dmg:Math.round(d.atk*1.3),ar:1},e=>{fxMeteor(e.x,e.z,0xff5a2a,1.1);decalLocal(e);});},i*220);}}
  else if(k==='summon'){m.rT=1.2;spawnAdds(m,2);txt(m.x,hy,m.z,'RISE!','#b06aff',true);sfx('wave');}
+ else if(k==='webs'){m.rT=1.6;txt(m.x,hy,m.z,'WEBS!','#f4f0ff',true);const n=m.phase===2?3:2,b0=rnd(0,Math.PI);
+  for(let i=0;i<n;i++){const a=b0+i*Math.PI/n,cx=tg.x+rnd(-2,2),cz=tg.z+rnd(-2,2),ex=Math.cos(a)*12,ez=Math.sin(a)*12;
+   const cx2=x=>clamp(x,AR.x-AR.r,AR.x+AR.r),cz2=z=>clamp(z,AR.z-AR.r,AR.z+AR.r);hEmit({y:'wl',ax:r1(cx2(cx-ex)),az:r1(cz2(cz-ez)),bx:r1(cx2(cx+ex)),bz:r1(cz2(cz+ez)),w:WEB_W,dur:WEB_DUR},webLaneLocal);}}
+ else if(k==='eggs'){m.rT=1.2;if(!spawnEggs(m,2)){m.rT=.2;}else{txt(m.x,hy,m.z,'BROOD!','#9affc8',true);sfx('wave');}}
 }
 function updateProjs(dt){for(const p of G.projs){p.life-=dt;
  if(!p.hostile&&p.tgt&&!p.tgt.dead&&!p.o.pierce){const a=Math.atan2(p.tgt.x-p.x,p.tgt.z-p.z),sp=Math.hypot(p.vx,p.vz);const cur=Math.atan2(p.vx,p.vz);const na=turnTo(cur,a,dt*10);p.vx=Math.sin(na)*sp;p.vz=Math.cos(na)*sp;p.m.rotation.y=na;}
@@ -3372,6 +3449,7 @@ function applyEv(e){switch(e.y){
  case 'pbf':partyBuffIn(e);break;
  case 'sn':snareLocal(e);break;
  case 'rz':rootZoneLocal(e);break;
+ case 'wl':webLaneLocal(e);break;
  case 'pp':if(isFoe(e.u)){hero.state='stun';hero.actT=0;hero.actDur=1.1;txt(hero.x,hero.y+2.6,hero.z,'PARRIED!','#8fd3ff',true);sfx('parry');}break;
  case 'dw':if(NET.duel&&!NET.duel.team&&NET.duel.uid===e.u)duelEnd(true);break;
  case 'dout':if(NET.duel&&NET.duel.team){NET.duel.outs[e.u]=1;const p=NET.peers[e.u];if(p&&p.info)log('💀 '+p.info.n+' is out!');teamCheck();}break;

@@ -186,7 +186,24 @@ or audio downloads. Measure geometry/draw-call changes against the current scene
 Browser check: scripts/browser-smoke.sh 640,503 /tmp/woods.png '?woods'
 (add '&plain' for the unbound Treant, '&mira' for Mira).
 
-Next: Pass B, Mire of Lanterns (Pell, lantern islands, Broodmother rework).
+### Pass B: Mire of Lanterns (implemented)
+
+- Lantern islands: each of the three lanterns sits on a mossy island with an iron
+  lantern housing; stepping stones with wisps lead from the grace to each one.
+  Relighting a lantern turns its island halo and its route gold, and every lantern
+  pushes the fog back (restored when all three are lit or the chapter is cleared).
+  State derives from saved quest progress, so it survives reloads.
+- Fix for every shrine chapter: lit shrines/lanterns no longer look dark after a reload.
+- Pell: a pole lantern over his shoulder that sways and flickers, a cautious lean,
+  and a slow look-around. His dialogue explains the warm stones, webs and eggs.
+- Broodmother: a ribbed, glowing lantern abdomen (brighter when casting, red-orange
+  in phase 2). `webs` lays 2 lanes (3 in phase 2) that arm after 0.8s and halve
+  movement for 8s; rolling through is free. `eggs` lays egg clusters (max 4) that
+  hatch two spiderlings after 12s unless destroyed; phase 2 lays a fresh clutch.
+  Eggs replicate online as a monster type; web lanes use the `wl` event.
+
+Browser check: scripts/browser-smoke.sh 640,503 /tmp/mire.png '?mire'
+(add '&shot=pell', '&shot=lanterns' or '&shot=boss' for screenshots).
 
 Mira receives an asymmetric cape and visible silk spool; her snare must have a
 real, readable effect in the Treant fight. The Treant has an asymmetric root arm,
