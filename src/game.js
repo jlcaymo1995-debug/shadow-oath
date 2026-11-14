@@ -2583,7 +2583,7 @@ function renderMenu(){const st=G.st=stats(),C=C_();
   h+=`<div class="card"><div class="ttl">Sound</div><button class="mbtn" data-a="music">🎵 Music: ${S.music?'ON':'OFF'}</button><button class="mbtn" data-a="sfxt">🔊 Effects: ${S.sfx?'ON':'OFF'}</button></div>`;
   h+=`<div class="card"><div class="ttl">Save</div><b>${saveStatus()}</b><br>The game auto-saves every few seconds, when you close or leave the page, at every rest, and on every quest/boss. Use <b>Continue</b> on the title screen.<br><button class="mbtn" data-a="save">💾 Save now</button><button class="mbtn" data-a="fs">⛶ Fullscreen</button><button class="mbtn" data-a="title">🏠 Save &amp; Title</button><br><br><b>Save code</b> (copy this somewhere safe; paste it on the title screen with "Load from save code" on any device):<br><textarea class="code" id="saveCode" readonly>${exportCode()}</textarea><button class="mbtn" data-a="copy">📋 Copy code</button>
   <button class="mbtn" data-a="reset" style="border-color:#c44;float:right">🗑️ Delete Save</button></div>`;}
- $('#mBody').innerHTML=h;if(G.tab==='bag')dollWire();if(G.tab==='forge')fgWire();if(G.tab==='chat')chatWire();if(G.tab==='online')friendsWire();}
+ $('#mBody').innerHTML=h;$('#mBody').classList.toggle('fill',G.tab==='chat');if(G.tab==='bag')dollWire();if(G.tab==='forge')fgWire();if(G.tab==='chat')chatWire();if(G.tab==='online')friendsWire();}
 function refineCost(it){const sm=S.cls==='smith';return {z:Math.round(150*(it.tier+1)*(it.ref+1)*(1+it.rar*.5)*(it.ref>=10?1+(it.ref-9)*.35:1)*(sm?.75:1)),ore:it.slot==='w'?'ori':'elu',n:1+Math.floor(it.ref/4)};}
 const pityB=it=>Math.min(.45,(it.pity||0)*.03);
 function refineRate(it){const b=REF_RATE[Math.min(REF_MAX-1,it.ref)];
@@ -3412,11 +3412,11 @@ function fmtChat(o){const f=FACTIONS.find(x=>x.k===o.fa);const tag=o.c==='a'?'<s
 function feedLine(o){let f=$('#chatF');if(!f)return;const d=document.createElement('div');d.className='cfl';d.innerHTML=fmtChat(o);f.appendChild(d);while(f.children.length>6)f.firstChild.remove();setTimeout(()=>{d.style.opacity=0;setTimeout(()=>d.remove(),600);},14000);}
 function chatHtml(){if(!FB.uid)return `<div class="card"><div class="ttl">💬 Chat</div>Log in from the title screen to chat with other players.</div>`;
  const c=G.chC||'w';const fr=Object.entries(FB.friends);
- let h=`<div class="card" style="padding:8px"><div class="fbar"><button data-a="chc" data-v="w" class="${c==='w'?'on':''}">🌍 World</button><button data-a="chc" data-v="a" class="${c==='a'?'on':''}">📍 Area</button><button data-a="chc" data-v="d" class="${c==='d'?'on':''}">💌 Friends</button></div>`;
+ let h=`<div class="card chatw"><div class="fbar"><button data-a="chc" data-v="w" class="${c==='w'?'on':''}">🌍 World</button><button data-a="chc" data-v="a" class="${c==='a'?'on':''}">📍 Area</button><button data-a="chc" data-v="d" class="${c==='d'?'on':''}">💌 Friends</button></div>`;
  if(c==='d')h+=fr.length?`<div class="fbar" style="margin-top:4px">${fr.map(([u,n])=>`<button data-a="chto" data-v="${u}" class="${G.chTo===u?'on':''}">${FB.pres[u]?'🟢':'⚫'} ${esc(n)}</button>`).join('')}</div>`:'<i style="font-size:12px;color:#a99cc0">Add friends in the 🌐 Online tab to message them.</i>';
- h+=`<div id="chList" style="height:min(46vh,230px);overflow-y:auto;margin:6px 0;padding:6px;background:rgba(0,0,0,.3);border-radius:8px;font-size:13px;line-height:1.45;user-select:text;-webkit-user-select:text"></div>
- <div style="display:flex;gap:6px"><input id="chIn" maxlength="120" placeholder="${c==='w'?'Say something to everyone...':c==='a'?'Talk to players near you...':'Message your friend...'}" style="flex:1;min-width:0;padding:9px;border-radius:8px;border:1px solid #6a5590;background:#1a1228;color:#fff;font-size:15px" autocomplete="off"><button class="btn" id="chGo" style="width:auto;padding:8px 14px;margin:0">Send</button></div>
- <i style="font-size:10.5px;color:#a99cc0">Be nice! Messages to friends aren't encrypted, so don't share passwords.</i></div>`;return h;}
+ h+=`<div id="chList"></div>
+ <div class="chatin"><input id="chIn" maxlength="120" placeholder="${c==='w'?'Say something to everyone...':c==='a'?'Talk to players near you...':'Message your friend...'}" autocomplete="off"><button id="chGo">Send</button></div>
+ <i class="note">Be nice! Messages to friends aren't encrypted, so don't share passwords.</i></div>`;return h;}
 function chatListRender(){const L=$('#chList');if(!L)return;const c=G.chC||'w';
  const list=FB.chat.filter(o=>c==='w'?(o.c==='w'):c==='a'?o.c==='a':(o.c==='d'&&(!G.chTo||o.u===G.chTo||o.to===G.chTo)));
  const near=L.scrollHeight-L.scrollTop-L.clientHeight<40;L.innerHTML=list.slice(-80).map(o=>`<div>${fmtChat(o)}</div>`).join('')||'<i style="color:#a99cc0">No messages yet. Say hi! 👋</i>';if(near||!L.dataset.init){L.scrollTop=L.scrollHeight;L.dataset.init=1;}
