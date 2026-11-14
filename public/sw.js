@@ -1,4 +1,6 @@
-// Offline cache. Bump VERSION when you upload a new index.html.
+// Offline cache. VERSION and FILES are REWRITTEN AT BUILD TIME by the sw-precache
+// plugin in vite.config.ts, which injects the real content-hashed asset names.
+// Do not hand-edit them: the values below are only placeholders for dev.
 const VERSION='shadow-oath-v15';
 const FILES=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()));});
